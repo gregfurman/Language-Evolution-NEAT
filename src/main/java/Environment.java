@@ -504,7 +504,6 @@ public class Environment implements Runnable{
 
     void displayNumber(){
         System.out.println("Resources: "+count(Resource.class) +"\nAgents: " + count(Agent.class) + "\n");
-//        System.out.println("Fitness: " + getFitness(false));
     }
 
 

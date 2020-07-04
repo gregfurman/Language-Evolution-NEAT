@@ -40,8 +40,6 @@ public class ScoreCalculate implements CalculateScore {
     @Override
     public double calculateScore(MLMethod mlMethod) {
 
-        System.out.println(mlMethod.getClass());
-
         NEATNetwork network = (NEATNetwork) mlMethod;
 
 

@@ -7,9 +7,8 @@ public class Application {
 
         Neuroevolution ne = new Neuroevolution(environment);
 
-//        ne.begin();
+        ne.begin();
 
-        ne.beginHetero();
 
 
 

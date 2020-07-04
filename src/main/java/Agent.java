@@ -33,7 +33,6 @@ public class Agent extends Cell implements Runnable{
 
     private MLRegression model;
 
-    NetworkID networkID;
 
     public Agent(int id){
 
@@ -256,15 +255,6 @@ public class Agent extends Cell implements Runnable{
     public void setNetwork(MLRegression model){
 
         this.model = model;
-
-    }
-
-    public void setNetwork(NetworkID id){
-
-        this.networkID = id;
-
-        System.out.println(id.getNetwork());
-        this.model =  (MLRegression) id.getNetwork();
 
     }
 
