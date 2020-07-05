@@ -2,40 +2,26 @@ import org.encog.ml.CalculateScore;
 import org.encog.ml.MLMethod;
 import org.encog.neural.neat.NEATNetwork;
 
-import java.io.*;
-import java.util.concurrent.atomic.AtomicInteger;
-
 public class ScoreCalculate implements CalculateScore {
 
 
-    volatile int generation, experimentNumber;
     Environment environment;
-
-    AtomicInteger populationSize;
+    StatsRecorder statsRecorder;
 
     final static int TRIALS = 10;
-
-    public ScoreCalculate(int generation,int experimentNumber, Environment environment){
-
-        this.generation = generation;
-        this.experimentNumber = experimentNumber;
-        this.environment = environment;
-
-    }
+    final static int AGENTS = 500;
+    final static int RESOURCES = 1500;
+    final static int MAX_ITERATIONS = 5000;
 
 
-    public ScoreCalculate(Environment environment){
+
+
+    public ScoreCalculate(Environment environment, StatsRecorder statsRecorder){
 
         this.environment = environment;
-
+        this.statsRecorder = statsRecorder;
     }
 
-    public ScoreCalculate(Environment environment, int populationSize){
-
-        this.environment = environment;
-        this.populationSize = new AtomicInteger(populationSize);
-
-    }
 
     @Override
     public double calculateScore(MLMethod mlMethod) {
@@ -43,7 +29,6 @@ public class ScoreCalculate implements CalculateScore {
         NEATNetwork network = (NEATNetwork) mlMethod;
 
 
-//        Thread[] tests = new Thread[TRIALS];
         SimulationDriver[] drivers = new SimulationDriver[TRIALS];
 
 
@@ -51,16 +36,34 @@ public class ScoreCalculate implements CalculateScore {
 
         for (int trial = 0; trial < TRIALS; trial++) {
             Environment env = new Environment(environment);
-            env.loadGrid(1500, 500, network);
-            drivers[trial] = new SimulationDriver(env, 5000);
+            env.loadGrid(RESOURCES, AGENTS, network);
+            drivers[trial] = new SimulationDriver(env, MAX_ITERATIONS);
+
+
+            recordWords(drivers[trial].wordlist(true,trial));
+
+
             drivers[trial].begin();
             score += drivers[trial].getFitness();
+
+            recordWords(drivers[trial].wordlist(false,trial));
             drivers[trial] = null;
+
 
         }
 
         return (double) score / TRIALS;
 
+
+    }
+
+    void recordWords(String[] wordlist){
+        boolean success=true;
+        for(String words : wordlist ){
+            success = success && statsRecorder.write(words);
+            if (!success)
+                break;
+        }
 
     }
 

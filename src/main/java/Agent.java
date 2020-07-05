@@ -1,14 +1,12 @@
 
-import org.encog.ml.MLMethod;
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+
 import org.encog.ml.MLRegression;
 import org.encog.ml.data.MLData;
 import org.encog.ml.data.basic.BasicMLData;
-import org.encog.neural.neat.NEATNetwork;
 
-import java.lang.reflect.Array;
-import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Random;
 
@@ -262,7 +260,6 @@ public class Agent extends Cell implements Runnable{
         neighbours.add(agent);
     }
 
-
     public float getFitness() {
         return fitness;
     }
@@ -271,4 +268,14 @@ public class Agent extends Cell implements Runnable{
         return "["+getId() + "]";
     }
 
+    public JsonElement getWordMap() {
+
+        Gson gson = new Gson();
+        JsonElement element = gson.toJsonTree(wordMap);
+        element.getAsJsonObject().addProperty("id",getId());
+        element.getAsJsonObject().addProperty("fitness",getFitness());
+        element.getAsJsonObject().addProperty("hashcode",model.hashCode());
+        return element;
+
+    }
 }

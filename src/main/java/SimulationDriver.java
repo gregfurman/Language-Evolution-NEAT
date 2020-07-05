@@ -4,36 +4,9 @@ public class SimulationDriver implements Runnable{
 
 
     Environment environment;
-    int resources,agents, iterations=0,Generation;
+    Environment[] environments;
+    int iterations;
 
-    public SimulationDriver(int generation,Environment environment, int resources, int agents){
-
-
-        this.environment = environment;
-        this.resources = resources;
-        this.agents = agents;
-        Generation = generation;
-
-    }
-
-    public SimulationDriver(int generation, Environment environment, int resources, int agents, int iterations){
-
-
-        this.environment = environment;
-        this.resources = resources;
-        this.agents = agents;
-        this.iterations = iterations;
-        Generation = generation;
-
-    }
-
-
-    public SimulationDriver(int generation, Environment environment){
-
-        this.environment = environment;
-        Generation = generation;
-
-    }
 
     public SimulationDriver(Environment environment, int iterations){
 
@@ -43,11 +16,27 @@ public class SimulationDriver implements Runnable{
     }
 
 
+    public SimulationDriver(Environment environment, int iterations, int trials){
+
+        environments = new Environment[trials];
+
+        for (int index=0; index<trials;index++){
+
+            environments[index] = new Environment(environment);
+
+        }
+
+        this.iterations = iterations;
+
+    }
 
     public float getFitness(){
         return environment.getFitness(false);
     }
 
+    public String[] wordlist(boolean status,int trial){
+        return environment.getWordList(status,trial);
+    }
 
     public void begin(){
 

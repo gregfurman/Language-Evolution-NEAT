@@ -1,23 +1,18 @@
+import org.encog.ml.ea.genome.Genome;
 import org.encog.ml.ea.population.Population;
 import org.encog.ml.ea.species.Species;
 import org.encog.ml.ea.train.basic.BasicEA;
 import org.encog.ml.ea.train.basic.TrainEA;
-import org.encog.neural.neat.NEATNetwork;
 import org.encog.neural.neat.NEATPopulation;
 import org.encog.neural.neat.NEATUtil;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.OptionalDouble;
-
 public class Neuroevolution implements Runnable {
 
-    final static private int POPULATION_SIZE = 3;
+    final static private int POPULATION_SIZE = 150;
     int experimentIndex;
     int iteration;
     Environment environment;
+    Generation generation;
 
 
     public Neuroevolution(int iteration,int experimentIndex){
@@ -35,36 +30,26 @@ public class Neuroevolution implements Runnable {
 
     public Neuroevolution(Environment environment){
 
-        this.environment = new Environment(environment);
+        generation = new Generation(1);
+        this.environment = new Environment(environment,generation);
 
     }
 
     public void begin(){
 
-        //        long startTime = System.nanoTime();
-
-        ScoreCalculate scoreCalculator = new ScoreCalculate(environment);
+        StatsRecorder wordlist =new StatsRecorder("wordList.json");
+        ScoreCalculate scoreCalculator = new ScoreCalculate(environment,wordlist);
         NEATPopulation population =  new NEATPopulation(9,1,POPULATION_SIZE);
         population.setInitialConnectionDensity(1.0);
         population.reset();
 
         TrainEA evolution = NEATUtil.constructNEATTrainer(population,scoreCalculator);
 
-        iteration = 1000;
+        iteration = 100;
 
         System.out.println("Experiment: " +experimentIndex+ " of iteration " + iteration+"\nStarting Evolution with "+ POPULATION_SIZE + " networks\n***************************\n");
 
-        try {
-            File file = new File("./test.csv");
-
-            boolean newFile = file.createNewFile();
-
-
-            BufferedWriter writer = new BufferedWriter(new FileWriter(file, true));
-
-            if (!newFile){
-                writer.write("Generation,averageFitness,maxFitness\n");
-            }
+        StatsRecorder fitnessStats = new StatsRecorder("fitness.csv","Generation,average,variance,best");
 
 
             for (int i = evolution.getIteration(); i < iteration; i++) {
@@ -72,24 +57,22 @@ public class Neuroevolution implements Runnable {
                 System.out.println("Running generation " + i + " of iteration " + iteration);
                 evolution.iteration();
 
-
                 double best = evolution.getBestGenome().getScore();
-                OptionalDouble average = averageScore(evolution.getPopulation());
 
-                writer.write((i+1)+"," + average.getAsDouble() + "," + best + "\n");
+                fitnessStats.write((i+1)+"," + summaryStatistics(evolution.getPopulation()) + "," + best);
 
 
                 System.out.println("Best Score: " +best + "\n");
+                wordlist.flush();
+                generation.next();
 
             }
 
-            writer.close();
+            wordlist.close();
+            fitnessStats.close();
 
             evolution.finishTraining();
 
-        } catch (IOException e){
-            e.printStackTrace();
-        }
 
 //        System.out.println("Time: " + (System.nanoTime()- startTime)/1000000/1000);
 
@@ -115,12 +98,20 @@ public class Neuroevolution implements Runnable {
     }
 
 
-    public OptionalDouble averageScore(Population population){
+    public String summaryStatistics(Population population){
 
-        OptionalDouble currentAverage = population.getSpecies().stream().mapToDouble(Species::getBestScore).average();
-        System.out.println("Average species score: " + currentAverage.orElse(-1));
+//        OptionalDouble currentAverage = population.getSpecies().stream().mapToDouble(Species::getBestScore).average();
 
-        return currentAverage;
+        double currentAverage = population.flatten().stream().mapToDouble(Genome::getScore).average().getAsDouble();
+        double variance = population.flatten().stream()
+                .map(i -> i.getScore() - currentAverage)
+                .map(i -> i*i)
+                .mapToDouble(i -> i).sum()/(population.size()-1);
+
+
+        System.out.println("Average: " + currentAverage + "\nVariance: " + variance);
+
+        return currentAverage+","+variance;
 
     }
 
