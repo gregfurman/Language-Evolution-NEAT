@@ -1,5 +1,4 @@
 import java.util.ArrayList;
-import java.util.Collections;
 
 import static java.util.Comparator.comparing;
 
@@ -62,15 +61,15 @@ public class Game implements Runnable{
 
         }
 
-
         Agent winner = agents.stream().max(comparing(Agent::getBid)).get();
-        winner.consume(resource.reward*(float)((agents.size()-1)/agents.size()),true);
+        winner.consume(resource.reward*((double) (agents.size()-1)/(double)agents.size()),true);
+
         agents.remove(winner);
 
 //        System.out.println("Winner ID: " + winner.getId() + " " + winner.getFitness() + " " + resource.reward);
 
         for (Agent agent : agents){
-            agent.consume(resource.reward*(float)(1/agents.size()+1)/agents.size());
+            agent.consume((winner.getBid()/agents.size())+resource.reward*((1/(double)(agents.size()+1))/(double) agents.size()));
             agent.setTerm(resource.type,winner.getTerm(resource.type));
         }
 

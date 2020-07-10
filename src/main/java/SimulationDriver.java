@@ -1,4 +1,3 @@
-import org.encog.neural.neat.NEATNetwork;
 
 public class SimulationDriver implements Runnable{
 
@@ -30,8 +29,13 @@ public class SimulationDriver implements Runnable{
 
     }
 
-    public float getFitness(){
+    public double getFitness(){
         return environment.getFitness(false);
+    }
+
+    public String getSummaryStats(){
+        return environment.getSummaryStatistics();
+
     }
 
     public String[] wordlist(boolean status,int trial){

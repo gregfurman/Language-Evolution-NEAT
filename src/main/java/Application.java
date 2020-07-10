@@ -1,11 +1,17 @@
+import java.util.Arrays;
+
 public class Application {
 
 
     public static void main(String[] args){
 
-        Environment environment = new Environment(50,50);
+        //Make config?
 
-        Neuroevolution ne = new Neuroevolution(environment);
+        int[] config = Arrays.asList(args).stream().mapToInt(Integer::parseInt).toArray();
+
+        Environment environment = new Environment(config[0],config[1],config[2]);
+
+        Neuroevolution ne = new Neuroevolution(environment,config[3]);
 
         ne.begin();
 

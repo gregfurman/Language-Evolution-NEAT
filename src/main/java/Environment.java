@@ -1,8 +1,6 @@
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
-import org.encog.ml.MLMethod;
 import org.encog.ml.MLRegression;
-import org.encog.ml.ea.genome.Genome;
 import org.encog.neural.neat.NEATNetwork;
 
 import java.util.*;
@@ -204,12 +202,18 @@ public class Environment implements Runnable{
             for (int i = lo; i < hi; ++i)
                 for (int j = lo; j < hi; ++j){
                     if (grid[i][j].getClass() == Agent.class ) {
-                        int[] coord = coord(i,j);
-                        if (grid[coord[0]][coord[1]].getClass() == Cell.class){
-                            grid[coord[0]][coord[1]]= grid[i][j];
-                            grid[i][j] = new Cell();
-                        }
+//                        if (((Agent) grid[i][j]).getFitness() >= 0.5){
 
+                        if(true){
+                            int[] coord = coord(i, j);
+                            if (grid[coord[0]][coord[1]].getClass() == Cell.class) {
+                                ((Agent) grid[i][j]).decrementFitness(0.05);
+                                grid[coord[0]][coord[1]] = grid[i][j];
+                                grid[i][j] = new Cell();
+
+                            }
+
+                        }
                     }
                 }
         }
@@ -305,7 +309,7 @@ public class Environment implements Runnable{
     }
 
 
-    private final int Movement_Limit = 10;
+    private final int Movement_Limit = 100;
     Cell[][] grid;
     int MAX_X, MAX_Y;
     NEATNetwork network;
@@ -313,6 +317,7 @@ public class Environment implements Runnable{
     AtomicBoolean running;
     List<Agent>agents;
     Generation generation;
+    private int initial_fitness;
 
 
 
@@ -321,6 +326,27 @@ public class Environment implements Runnable{
 
         agents = Collections.synchronizedList(new ArrayList<>());
         networkIDs = new ConcurrentHashMap();
+
+//        agents = new ConcurrentLinkedQueue<>();
+//        agents = new ArrayList<>();
+
+        grid = new Cell[x][y];
+
+        MAX_X = x;
+        MAX_Y = y;
+
+        for (int i = 0; i < x; i++)
+            for (int j = 0; j < y; j++)
+                grid[i][j] =  new Cell();
+
+    }
+
+    public Environment(int x, int y, int initial_fitness){
+
+        agents = Collections.synchronizedList(new ArrayList<>());
+        networkIDs = new ConcurrentHashMap();
+        this.initial_fitness = initial_fitness;
+
 //        agents = new ConcurrentLinkedQueue<>();
 //        agents = new ArrayList<>();
 
@@ -359,7 +385,7 @@ public class Environment implements Runnable{
         this.generation = generation;
         agents = Collections.synchronizedList(new ArrayList<>());
         networkIDs = new ConcurrentHashMap();
-
+        this.initial_fitness = environment.initial_fitness;
         MAX_X = environment.MAX_X;
         MAX_Y = environment.MAX_Y;
         this.grid = java.util.Arrays.stream(environment.grid).map(el -> el.clone()).toArray($ -> environment.grid.clone());
@@ -375,7 +401,7 @@ public class Environment implements Runnable{
         generation = environment.generation;
         agents = Collections.synchronizedList(new ArrayList<>());
         networkIDs = new ConcurrentHashMap();
-
+        this.initial_fitness = environment.initial_fitness;
         MAX_X = environment.MAX_X;
         MAX_Y = environment.MAX_Y;
         this.grid = java.util.Arrays.stream(environment.grid).map(el -> el.clone()).toArray($ -> environment.grid.clone());
@@ -424,7 +450,7 @@ public class Environment implements Runnable{
 
             if (grid[x][y].getClass() == Cell.class){
                 counter++;
-                grid[x][y] = new Resource(type);
+                grid[x][y] = new Resource(type,true);
             }
 
             x = random.nextInt(MAX_X);
@@ -469,7 +495,7 @@ public class Environment implements Runnable{
         do{
 
             if (grid[x][y].getClass() == Cell.class){
-                Agent agent = new Agent(counter, network);
+                Agent agent = new Agent(counter, network, initial_fitness);
                 agent.configureWordMap();
                 grid[x][y] = agent;
                 agents.add(agent);
@@ -483,20 +509,6 @@ public class Environment implements Runnable{
 
     }
 
-
-    public void assignNetworks(List<Genome> networks){
-
-
-
-        for (int index = 0 ; index < networks.size(); index++){
-            MLMethod ml = networks.get(index);
-            Agent agent = agents.get(index);
-            networkIDs.put(ml.hashCode(),agent);
-//            agent.setNetwork(new NetworkID(ml));
-        }
-
-
-    }
 
     public MLRegression getNetwork(int hashcode){
 
@@ -618,7 +630,6 @@ public class Environment implements Runnable{
 
     }
 
-
     public void move(boolean multithreaded){
 
         MoveAgents moveAgents = new MoveAgents(this);
@@ -670,6 +681,22 @@ public class Environment implements Runnable{
         return counter;
     }
 
+    public int countAgents() {
+        int counter = 0;
+        for(int x = 0; x < MAX_X; x++)
+        {
+            for(int y = 0; y < MAX_Y; y++)
+            {
+                if(grid[x][y].getClass() == Agent.class && ((Agent)grid[x][y]).fitness < 1)
+                {
+                    counter++;
+                }
+            }
+        }
+
+        return counter;
+    }
+
     public boolean withinGrid(int col, int row){
 
         if((col < 0) || (row <0) ) {
@@ -684,15 +711,43 @@ public class Environment implements Runnable{
 
     }
 
-    public float getFitness(boolean multithreaded){
+    public double getFitness(boolean multithreaded){
 
         if (multithreaded) {
             ForkJoinPool pool = new ForkJoinPool();
             return pool.invoke(new parallelSum(grid, 0, grid.length));
         } else{
-           return new parallelSum(grid, 0, grid.length).serialSum();
+            return agents.stream().mapToDouble(Agent::getFitness).sum();
+
 
         }
+    }
+
+
+    public double getAverageFitness(){
+
+        return agents.stream().mapToDouble(Agent::getFitness).average().getAsDouble();
+
+
+    }
+    double getVariance(double average){
+
+
+        return agents.stream()
+                .map(i -> i.getFitness() - average)
+                .map(i -> i*i)
+                .mapToDouble(i -> i).sum()/(agents.size()-1);
+
+
+    }
+
+    public String getSummaryStatistics(){
+
+        double average = getAverageFitness();
+
+        double variance = getVariance(average);
+
+        return  average + "," + variance;
     }
 
 

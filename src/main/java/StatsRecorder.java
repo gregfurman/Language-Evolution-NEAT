@@ -41,7 +41,7 @@ public class StatsRecorder {
 
             bufferedWriter = new BufferedWriter(new FileWriter(filename,newfile));
 
-            if (newfile)
+            if (!newfile)
                 bufferedWriter.write(header + "\n");
 
         } catch (IOException e){

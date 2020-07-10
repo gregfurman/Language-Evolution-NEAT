@@ -21,7 +21,7 @@ public class Agent extends Cell implements Runnable{
 
     ArrayList<Agent> neighbours;
     private HashMap<Character, String> wordMap = new HashMap();
-    float fitness;
+    double fitness;
 
     double[] inputs;
 
@@ -45,6 +45,14 @@ public class Agent extends Cell implements Runnable{
         this.id = id;
         this.model = model;
         fitness = AGENT_FITNESS;
+
+    }
+
+    public Agent(int id, MLRegression model, int fitness){
+
+        this.id = id;
+        this.model = model;
+        this.fitness= fitness;
 
     }
     public Agent(Agent agent){
@@ -177,7 +185,6 @@ public class Agent extends Cell implements Runnable{
         MLData modelInput = new BasicMLData(inputs);
         MLData predict = model.compute(modelInput);
         setBid(predict.getData(0));
-
     }
 
     public double getScore(double[] inputs){
@@ -214,10 +221,12 @@ public class Agent extends Cell implements Runnable{
 
 
     void setBid(double bid){
-        if (fitness-bid < 0)
+        if (bid < 0 || fitness < bid)
             this.bid = 0;
         else
-            this.bid = bid;
+            this.bid = bid*fitness;
+
+
     }
 
     double getBid(){
@@ -236,15 +245,15 @@ public class Agent extends Cell implements Runnable{
     }
 
 
-    void consume(float reward){
-
+    void consume(double reward){
         fitness += reward;
 
     }
 
-    void consume(float reward, boolean winner){
+    void consume(double reward, boolean winner){
+
         if (winner)
-            fitness += reward-getBid();
+            fitness += (reward-getBid());
         else
             fitness += reward;
 
@@ -260,8 +269,21 @@ public class Agent extends Cell implements Runnable{
         neighbours.add(agent);
     }
 
-    public float getFitness() {
+    public double getFitness() {
         return fitness;
+    }
+
+    public void setFitness(int fitness){
+        this.fitness = fitness;
+    }
+
+    public void decrementFitness(double dec){
+        if (fitness >= dec)
+            fitness -= dec;
+    }
+
+    public void decrementFitness(){
+        fitness--;
     }
 
     public String toString(){

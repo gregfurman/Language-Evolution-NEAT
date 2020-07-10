@@ -1,14 +1,12 @@
 import org.encog.ml.ea.genome.Genome;
 import org.encog.ml.ea.population.Population;
-import org.encog.ml.ea.species.Species;
-import org.encog.ml.ea.train.basic.BasicEA;
 import org.encog.ml.ea.train.basic.TrainEA;
 import org.encog.neural.neat.NEATPopulation;
 import org.encog.neural.neat.NEATUtil;
 
 public class Neuroevolution implements Runnable {
 
-    final static private int POPULATION_SIZE = 150;
+    final static private int POPULATION_SIZE = 5;
     int experimentIndex;
     int iteration;
     Environment environment;
@@ -28,10 +26,11 @@ public class Neuroevolution implements Runnable {
 
     }
 
-    public Neuroevolution(Environment environment){
+    public Neuroevolution(Environment environment,int iteration){
 
         generation = new Generation(1);
         this.environment = new Environment(environment,generation);
+        this.iteration = iteration;
 
     }
 
@@ -45,8 +44,6 @@ public class Neuroevolution implements Runnable {
 
         TrainEA evolution = NEATUtil.constructNEATTrainer(population,scoreCalculator);
 
-        iteration = 100;
-
         System.out.println("Experiment: " +experimentIndex+ " of iteration " + iteration+"\nStarting Evolution with "+ POPULATION_SIZE + " networks\n***************************\n");
 
         StatsRecorder fitnessStats = new StatsRecorder("fitness.csv","Generation,average,variance,best");
@@ -54,7 +51,7 @@ public class Neuroevolution implements Runnable {
 
             for (int i = evolution.getIteration(); i < iteration; i++) {
 
-                System.out.println("Running generation " + i + " of iteration " + iteration);
+                System.out.println("Running generation " + (i+1) + " of iteration " + iteration);
                 evolution.iteration();
 
                 double best = evolution.getBestGenome().getScore();
@@ -100,14 +97,11 @@ public class Neuroevolution implements Runnable {
 
     public String summaryStatistics(Population population){
 
-//        OptionalDouble currentAverage = population.getSpecies().stream().mapToDouble(Species::getBestScore).average();
-
         double currentAverage = population.flatten().stream().mapToDouble(Genome::getScore).average().getAsDouble();
         double variance = population.flatten().stream()
                 .map(i -> i.getScore() - currentAverage)
                 .map(i -> i*i)
                 .mapToDouble(i -> i).sum()/(population.size()-1);
-
 
         System.out.println("Average: " + currentAverage + "\nVariance: " + variance);
 

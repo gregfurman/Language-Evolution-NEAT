@@ -8,10 +8,10 @@ public class ScoreCalculate implements CalculateScore {
     Environment environment;
     StatsRecorder statsRecorder;
 
-    final static int TRIALS = 10;
-    final static int AGENTS = 500;
-    final static int RESOURCES = 1500;
-    final static int MAX_ITERATIONS = 5000;
+    final static int TRIALS = 5;
+    final static int AGENTS = 200;
+    final static int RESOURCES = 2300;
+    final static int MAX_ITERATIONS = 20000;
 
 
 
@@ -40,12 +40,13 @@ public class ScoreCalculate implements CalculateScore {
             drivers[trial] = new SimulationDriver(env, MAX_ITERATIONS);
 
 
-            recordWords(drivers[trial].wordlist(true,trial));
+//            recordWords(drivers[trial].wordlist(true,trial));
 
 
             drivers[trial].begin();
             score += drivers[trial].getFitness();
 
+            if (env.generation.get() == 100)
             recordWords(drivers[trial].wordlist(false,trial));
             drivers[trial] = null;
 

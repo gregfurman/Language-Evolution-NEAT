@@ -3,7 +3,7 @@ import java.util.Random;
 public class Resource extends Cell {
 
     Random random;
-    float reward;
+    double reward;
     char type;
     boolean active;
 
@@ -12,7 +12,21 @@ public class Resource extends Cell {
         active = true;
         random = new Random();
         this.type = type;
-        reward = random.nextFloat();
+        reward = random.nextInt(8)+1;
+
+    }
+
+    Resource(char type, boolean gaussian){
+
+        active = true;
+        random = new Random();
+        this.type = type;
+
+        if (gaussian)
+            reward = Math.abs(random.nextGaussian()*2+4);
+        else
+            reward = random.nextInt(8)+1;
+
 
     }
 
