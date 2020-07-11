@@ -1,30 +1,30 @@
+import org.encog.ml.MLMethod;
 import org.encog.ml.ea.genome.Genome;
 import org.encog.ml.ea.population.Population;
 import org.encog.ml.ea.train.basic.TrainEA;
+import org.encog.neural.neat.NEATNetwork;
 import org.encog.neural.neat.NEATPopulation;
 import org.encog.neural.neat.NEATUtil;
+import org.encog.neural.neat.PersistNEATPopulation;
+import org.encog.util.obj.SerializeObject;
+import org.encog.util.simple.EncogUtility;
+
+import static org.encog.util.simple.EncogUtility.*;
+import static org.encog.persist.EncogDirectoryPersistence.*;
+
+import java.io.*;
+
 
 public class Neuroevolution implements Runnable {
 
-    final static private int POPULATION_SIZE = 5;
+    private int POPULATION_SIZE;
+
     int experimentIndex;
     int iteration;
     Environment environment;
     Generation generation;
 
-
-    public Neuroevolution(int iteration,int experimentIndex){
-
-        this.experimentIndex = experimentIndex;
-        this.iteration = iteration;
-
-    }
-
-    public Neuroevolution(int experimentIndex){
-
-        this.experimentIndex = experimentIndex;
-
-    }
+    Config config;
 
     public Neuroevolution(Environment environment,int iteration){
 
@@ -34,10 +34,22 @@ public class Neuroevolution implements Runnable {
 
     }
 
+    public Neuroevolution(Environment environment,Config config){
+
+        generation = new Generation(1);
+        this.environment = new Environment(environment,generation);
+
+        this.config = config;
+        this.iteration = config.getGenerations();
+        this.POPULATION_SIZE = config.getPopulation_size();
+
+    }
+
+
     public void begin(){
 
         StatsRecorder wordlist =new StatsRecorder("wordList.json");
-        ScoreCalculate scoreCalculator = new ScoreCalculate(environment,wordlist);
+        ScoreCalculate scoreCalculator = new ScoreCalculate(environment,wordlist, config);
         NEATPopulation population =  new NEATPopulation(9,1,POPULATION_SIZE);
         population.setInitialConnectionDensity(1.0);
         population.reset();
@@ -70,30 +82,29 @@ public class Neuroevolution implements Runnable {
 
             evolution.finishTraining();
 
-
-//        System.out.println("Time: " + (System.nanoTime()- startTime)/1000000/1000);
-
-
-//        System.out.println("finished thread " + iteration);
-
-
-
-
-//        NEATNetwork bestPerformingNetwork = (NEATNetwork) evolution.getCODEC().decode(evolution.getBestGenome());
-
-//        try {
-//            SerializeObject.save(new File("bestnetworks_" + experimentIndex + ".txt"), bestPerformingNetwork);
-//        }catch (IOException e){
-//            System.out.println("Could not save network");
-//        }
-//
-//        EncogUtility.saveEGB( "bestnetworks_"+experimentIndex+".txt" , data);
-//
-//
-//        EncogDirectoryPersistence.saveObject(new File("bestnetworks_"+experimentIndex+".txt"), bestPerformingNetwork);
-
     }
 
+
+
+    public void savePopulation(NEATPopulation population){
+        PersistNEATPopulation persistNEATPopulation = new PersistNEATPopulation();
+
+        try {
+            persistNEATPopulation.save(new FileOutputStream("population.eg"),population);
+        } catch (IOException e){
+            e.printStackTrace();
+        }
+    }
+
+    public void loadPopulation(NEATPopulation population){
+        PersistNEATPopulation persistNEATPopulation = new PersistNEATPopulation();
+
+        try {
+            population=(NEATPopulation) persistNEATPopulation.read(new FileInputStream("population.eg"));
+        } catch (IOException e){
+            e.printStackTrace();
+        }
+    }
 
     public String summaryStatistics(Population population){
 

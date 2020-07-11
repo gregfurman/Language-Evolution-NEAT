@@ -311,12 +311,14 @@ public class Environment implements Runnable{
 
     private final int Movement_Limit = 100;
     Cell[][] grid;
-    int MAX_X, MAX_Y;
+
     NEATNetwork network;
     ConcurrentHashMap networkIDs;
     AtomicBoolean running;
     List<Agent>agents;
     Generation generation;
+
+    int MAX_X, MAX_Y, AGENT_NO,RESOURCE_NO;
     private int initial_fitness;
 
 
@@ -347,9 +349,6 @@ public class Environment implements Runnable{
         networkIDs = new ConcurrentHashMap();
         this.initial_fitness = initial_fitness;
 
-//        agents = new ConcurrentLinkedQueue<>();
-//        agents = new ArrayList<>();
-
         grid = new Cell[x][y];
 
         MAX_X = x;
@@ -360,39 +359,18 @@ public class Environment implements Runnable{
                 grid[i][j] =  new Cell();
 
     }
-
-    public Environment(int x, int y, int totalResources,int totalAgents, NEATNetwork network){
-
-
-        grid = new Cell[x][y];
-
-        MAX_X = x;
-        MAX_Y = y;
-
-        for (int i = 0; i < x; i++)
-            for (int j = 0; j < y; j++)
-                grid[i][j] =  new Cell();
-
-
-        this.network = network;
-        loadGrid(totalResources,totalAgents);
-
-    }
-
 
     public Environment(Environment environment, Generation generation){
 
+        this(environment);
         this.generation = generation;
-        agents = Collections.synchronizedList(new ArrayList<>());
-        networkIDs = new ConcurrentHashMap();
-        this.initial_fitness = environment.initial_fitness;
-        MAX_X = environment.MAX_X;
-        MAX_Y = environment.MAX_Y;
-        this.grid = java.util.Arrays.stream(environment.grid).map(el -> el.clone()).toArray($ -> environment.grid.clone());
 
-        if (environment.network != null){
-            network = environment.network;
-        }
+    }
+
+    public Environment(Environment environment, NEATNetwork network){
+
+        this(environment);
+        this.network = network;
 
     }
 
@@ -405,27 +383,42 @@ public class Environment implements Runnable{
         MAX_X = environment.MAX_X;
         MAX_Y = environment.MAX_Y;
         this.grid = java.util.Arrays.stream(environment.grid).map(el -> el.clone()).toArray($ -> environment.grid.clone());
+        RESOURCE_NO = environment.RESOURCE_NO;
+        AGENT_NO = environment.AGENT_NO;
+        network = environment.network;
 
-        if (environment.network != null){
-            network = environment.network;
-        }
+
+    }
+
+    public Environment(Config config){
+
+        this(config.getDim_x(),config.getDim_y(),config.getInitial_fitness());
+
+        AGENT_NO = config.getAgent_no();
+        RESOURCE_NO = config.getResource_no();
 
     }
 
 
     public void loadGrid(int totalResources,int totalAgents){
-        loadResouces(totalResources);
+        loadResources(totalResources);
         loadAgents(totalAgents);
 
     }
 
+    public void loadGrid(){
+        loadResources();
+        loadAgents();
+
+    }
+
     public void loadGrid(int totalResources,int totalAgents, NEATNetwork network){
-        loadResouces(totalResources);
+        loadResources(totalResources);
         loadAgents(totalAgents, network);
 
     }
 
-    void loadResouces(int resources){
+    void loadResources(int resources){
 
         int split_1 = Math.floorDiv(resources,3);
         int split_2 = (2*resources)/3;
@@ -458,6 +451,11 @@ public class Environment implements Runnable{
 
         } while(counter < resources);
 
+    }
+
+    void loadResources(){
+
+        loadResources(RESOURCE_NO);
     }
 
     void loadAgents(int totalAgents){
@@ -509,6 +507,17 @@ public class Environment implements Runnable{
 
     }
 
+    void loadAgents(NEATNetwork network){
+
+        loadAgents(AGENT_NO,network);
+
+    }
+
+    void loadAgents(){
+
+        loadAgents(AGENT_NO,network);
+
+    }
 
     public MLRegression getNetwork(int hashcode){
 

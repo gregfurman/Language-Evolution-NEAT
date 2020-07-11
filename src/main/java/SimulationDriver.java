@@ -15,6 +15,7 @@ public class SimulationDriver implements Runnable{
     }
 
 
+
     public SimulationDriver(Environment environment, int iterations, int trials){
 
         environments = new Environment[trials];
@@ -44,12 +45,9 @@ public class SimulationDriver implements Runnable{
 
     public void begin(){
 
-//        environment.loadGrid(resources, agents);
+        environment.loadGrid();
+        environment.begin(iterations);
 
-        if (iterations > 0)
-            environment.begin(iterations);
-        else
-            environment.begin();
 
     }
 

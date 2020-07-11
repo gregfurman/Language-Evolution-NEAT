@@ -5,13 +5,13 @@ public class Application {
 
     public static void main(String[] args){
 
-        //Make config?
+//        Config config = new Config(Arrays.asList(args).stream().mapToInt(Integer::parseInt).toArray());
 
-        int[] config = Arrays.asList(args).stream().mapToInt(Integer::parseInt).toArray();
+        Config config = new Config().load("config");
 
-        Environment environment = new Environment(config[0],config[1],config[2]);
+        Environment environment = new Environment(config);
 
-        Neuroevolution ne = new Neuroevolution(environment,config[3]);
+        Neuroevolution ne = new Neuroevolution(environment,config);
 
         ne.begin();
 

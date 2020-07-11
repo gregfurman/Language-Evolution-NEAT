@@ -8,18 +8,27 @@ public class ScoreCalculate implements CalculateScore {
     Environment environment;
     StatsRecorder statsRecorder;
 
-    final static int TRIALS = 5;
-    final static int AGENTS = 200;
-    final static int RESOURCES = 2300;
+    private int TRIALS, GENERATIONS;
     final static int MAX_ITERATIONS = 20000;
 
+    Config config;
 
 
-
-    public ScoreCalculate(Environment environment, StatsRecorder statsRecorder){
+    public ScoreCalculate(Environment environment, StatsRecorder statsRecorder, int TRIALS){
 
         this.environment = environment;
         this.statsRecorder = statsRecorder;
+        this.TRIALS = TRIALS;
+    }
+
+    public ScoreCalculate(Environment environment, StatsRecorder statsRecorder, Config config){
+
+        this.environment = environment;
+        this.statsRecorder = statsRecorder;
+        this.config = config;
+        this.GENERATIONS = config.getGenerations();
+        this.TRIALS = config.getTrials();
+
     }
 
 
@@ -35,18 +44,15 @@ public class ScoreCalculate implements CalculateScore {
         float score = 0;
 
         for (int trial = 0; trial < TRIALS; trial++) {
-            Environment env = new Environment(environment);
-            env.loadGrid(RESOURCES, AGENTS, network);
+
+
+            Environment env = new Environment(environment,network);
+
             drivers[trial] = new SimulationDriver(env, MAX_ITERATIONS);
-
-
-//            recordWords(drivers[trial].wordlist(true,trial));
-
-
             drivers[trial].begin();
             score += drivers[trial].getFitness();
 
-            if (env.generation.get() == 100)
+            if (env.generation.get() == config.getGenerations())
             recordWords(drivers[trial].wordlist(false,trial));
             drivers[trial] = null;
 
