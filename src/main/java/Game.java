@@ -66,10 +66,8 @@ public class Game implements Runnable{
 
         agents.remove(winner);
 
-//        System.out.println("Winner ID: " + winner.getId() + " " + winner.getFitness() + " " + resource.reward);
-
         for (Agent agent : agents){
-            agent.consume((winner.getBid()/agents.size())+resource.reward*((1/(double)(agents.size()+1))/(double) agents.size()));
+            agent.consume((winner.getBid()/agents.size())+resource.reward*((1/(double)(agents.size()+1))/(double) agents.size()),false);
             agent.setTerm(resource.type,winner.getTerm(resource.type));
         }
 

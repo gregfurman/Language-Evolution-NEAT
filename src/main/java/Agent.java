@@ -221,6 +221,8 @@ public class Agent extends Cell implements Runnable{
 
 
     void setBid(double bid){
+
+
         if (bid < 0 || fitness < bid)
             this.bid = 0;
         else
@@ -252,10 +254,15 @@ public class Agent extends Cell implements Runnable{
 
     void consume(double reward, boolean winner){
 
+        if (Double.isNaN(reward) || Double.isNaN(getBid())){
+            System.out.println(reward + " " +getBid());
+        }
+
         if (winner)
             fitness += (reward-getBid());
         else
             fitness += reward;
+
 
     }
 

@@ -6,7 +6,7 @@ public class ScoreCalculate implements CalculateScore {
 
 
     Environment environment;
-    StatsRecorder statsRecorder;
+    StatsRecorder wordlist,fitnessStats;
 
     private int TRIALS, GENERATIONS;
     final static int MAX_ITERATIONS = 20000;
@@ -14,22 +14,17 @@ public class ScoreCalculate implements CalculateScore {
     Config config;
 
 
-    public ScoreCalculate(Environment environment, StatsRecorder statsRecorder, int TRIALS){
+    public ScoreCalculate(Environment environment, Config config){
 
         this.environment = environment;
-        this.statsRecorder = statsRecorder;
-        this.TRIALS = TRIALS;
-    }
-
-    public ScoreCalculate(Environment environment, StatsRecorder statsRecorder, Config config){
-
-        this.environment = environment;
-        this.statsRecorder = statsRecorder;
+        this.wordlist = config.getWordList();;
+        this.fitnessStats = config.getFitnessStats();
         this.config = config;
         this.GENERATIONS = config.getGenerations();
         this.TRIALS = config.getTrials();
 
     }
+
 
 
     @Override
@@ -39,9 +34,10 @@ public class ScoreCalculate implements CalculateScore {
 
 
         SimulationDriver[] drivers = new SimulationDriver[TRIALS];
+        StatsCalculator trialScores = new StatsCalculator(false);
 
 
-        float score = 0;
+        double score;
 
         for (int trial = 0; trial < TRIALS; trial++) {
 
@@ -50,16 +46,23 @@ public class ScoreCalculate implements CalculateScore {
 
             drivers[trial] = new SimulationDriver(env, MAX_ITERATIONS);
             drivers[trial].begin();
-            score += drivers[trial].getFitness();
 
-            if (env.generation.get() == config.getGenerations())
+            trialScores.add(drivers[trial].getFitness());
+
+            if (env.generation.get() % (config.getGenerations()/10) == 0)
             recordWords(drivers[trial].wordlist(false,trial));
             drivers[trial] = null;
 
-
         }
 
-        return (double) score / TRIALS;
+        score = trialScores.average(false);
+
+
+        config.getTrialCalculator().add(trialScores.SSG(score)/(config.getPopulation_size()*(config.getTrials()-1)));
+        config.getCalculator().add(score);
+
+
+        return score;
 
 
     }
@@ -67,12 +70,13 @@ public class ScoreCalculate implements CalculateScore {
     void recordWords(String[] wordlist){
         boolean success=true;
         for(String words : wordlist ){
-            success = success && statsRecorder.write(words);
+            success = success && this.wordlist.write(words);
             if (!success)
                 break;
         }
 
     }
+
 
 
     @Override

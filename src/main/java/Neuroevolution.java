@@ -1,16 +1,9 @@
-import org.encog.ml.MLMethod;
 import org.encog.ml.ea.genome.Genome;
 import org.encog.ml.ea.population.Population;
 import org.encog.ml.ea.train.basic.TrainEA;
-import org.encog.neural.neat.NEATNetwork;
 import org.encog.neural.neat.NEATPopulation;
 import org.encog.neural.neat.NEATUtil;
 import org.encog.neural.neat.PersistNEATPopulation;
-import org.encog.util.obj.SerializeObject;
-import org.encog.util.simple.EncogUtility;
-
-import static org.encog.util.simple.EncogUtility.*;
-import static org.encog.persist.EncogDirectoryPersistence.*;
 
 import java.io.*;
 
@@ -19,7 +12,6 @@ public class Neuroevolution implements Runnable {
 
     private int POPULATION_SIZE;
 
-    int experimentIndex;
     int iteration;
     Environment environment;
     Generation generation;
@@ -46,39 +38,36 @@ public class Neuroevolution implements Runnable {
     }
 
 
+
     public void begin(){
 
-        StatsRecorder wordlist =new StatsRecorder("wordList.json");
-        ScoreCalculate scoreCalculator = new ScoreCalculate(environment,wordlist, config);
+        ScoreCalculate scoreCalculator = new ScoreCalculate(environment, config);
         NEATPopulation population =  new NEATPopulation(9,1,POPULATION_SIZE);
         population.setInitialConnectionDensity(1.0);
         population.reset();
 
         TrainEA evolution = NEATUtil.constructNEATTrainer(population,scoreCalculator);
 
-        System.out.println("Experiment: " +experimentIndex+ " of iteration " + iteration+"\nStarting Evolution with "+ POPULATION_SIZE + " networks\n***************************\n");
-
-        StatsRecorder fitnessStats = new StatsRecorder("fitness.csv","Generation,average,variance,best");
+        System.out.println("Experiment: " +config.getId() +"\nStarting Evolution with "+ POPULATION_SIZE + " networks\n***************************\n");
 
 
             for (int i = evolution.getIteration(); i < iteration; i++) {
 
                 System.out.println("Running generation " + (i+1) + " of iteration " + iteration);
+
                 evolution.iteration();
+
 
                 double best = evolution.getBestGenome().getScore();
 
-                fitnessStats.write((i+1)+"," + summaryStatistics(evolution.getPopulation()) + "," + best);
-
+                config.getFitnessStats().write((i+1)+"," + config.getCalculator().summaryStatistics() + "," + config.getTrialCalculator().sum(true)+","+ best + ","+config.getResource_no() + ","+config.getAgent_no());
 
                 System.out.println("Best Score: " +best + "\n");
-                wordlist.flush();
                 generation.next();
+
 
             }
 
-            wordlist.close();
-            fitnessStats.close();
 
             evolution.finishTraining();
 
@@ -106,6 +95,9 @@ public class Neuroevolution implements Runnable {
         }
     }
 
+
+
+
     public String summaryStatistics(Population population){
 
         double currentAverage = population.flatten().stream().mapToDouble(Genome::getScore).average().getAsDouble();
@@ -113,6 +105,7 @@ public class Neuroevolution implements Runnable {
                 .map(i -> i.getScore() - currentAverage)
                 .map(i -> i*i)
                 .mapToDouble(i -> i).sum()/(population.size()-1);
+
 
         System.out.println("Average: " + currentAverage + "\nVariance: " + variance);
 

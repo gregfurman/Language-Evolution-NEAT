@@ -4,8 +4,11 @@ import java.io.IOException;
 
 public class Config {
 
-    int population_size,dim_x, dim_y,  initial_fitness, agent_no, resource_no, trials, generations;
+    int population_size,dim_x, dim_y,  initial_fitness, agent_no, resource_no, trials, generations,id;
 
+    StatsRecorder wordList, fitnessStats;
+
+    StatsCalculator calculator, trialCalculator;
 
     public Config(int population_size, int dim_x, int dim_y, int initial_fitness, int agent_no, int resource_no, int trials) {
         this.population_size = population_size;
@@ -30,7 +33,7 @@ public class Config {
 
     }
 
-    private Config(Config config){
+    public Config(Config config){
 
         this.population_size = config.getPopulation_size();
         this.dim_x = config.getDim_x();
@@ -40,11 +43,22 @@ public class Config {
         this.resource_no = config.getResource_no();
         this.trials = config.getTrials();
         this.generations = config.getGenerations();
-
+        this.fitnessStats = config.getFitnessStats();
+        this.wordList = config.getWordList();
+        this.id = getId();
+        this.calculator = new StatsCalculator(true);
+        this.trialCalculator = new StatsCalculator(true);
 
 
     }
 
+
+    public Config(int agent_no){
+
+        this.id = agent_no;
+        this.agent_no = agent_no;
+
+    }
     Config(){
 
     }
@@ -53,9 +67,13 @@ public class Config {
 
         Gson gson = new Gson();
 
+        Config config;
+
         try (FileReader reader = new FileReader(filename)){
 
-            return gson.fromJson(reader, Config.class);
+            config = gson.fromJson(reader, Config.class);
+            return config;
+
 
         } catch (IOException e){
             e.printStackTrace();
@@ -95,10 +113,57 @@ public class Config {
         return trials;
     }
 
+    public int getId() {
+        return id;
+    }
+
+    public void setAgent_no(int agent_no) {
+        this.agent_no = agent_no;
+    }
+
+
+    public void setResource_no(double resource_no) {
+        this.resource_no = (int)Math.ceil(getDim_x()*getDim_y()*resource_no);
+    }
+
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public void loadStatsRecorders(){
+
+        fitnessStats = new StatsRecorder("fitness_"+getId()+".csv","Generation,average,MSB,MSW,best,resources,agents");
+        wordList =new StatsRecorder("wordList_"+getId()+".json");
+
+
+    }
+
+    public void closeStatsRecorders(){
+        wordList.close();
+        fitnessStats.close();
+    }
+
+
+    public StatsRecorder getFitnessStats() {
+        return fitnessStats;
+    }
+
+    public StatsRecorder getWordList() {
+        return wordList;
+    }
+
+    public StatsCalculator getCalculator() {
+        return calculator;
+    }
+
+    public StatsCalculator getTrialCalculator(){
+        return trialCalculator;
+    }
 
     public String toString(){
 
-        return String.format("population_size=%d,dim_x=%d, dim_y=%d, initial_fitness=%d, agent_no=%d, resource_no=%d, trials=%d, generations=%d",population_size,dim_x, dim_y,  initial_fitness, agent_no, resource_no, trials, generations);
+        return String.format("id=%d,population_size=%d,dim_x=%d, dim_y=%d, initial_fitness=%d, agent_no=%d, resource_no=%d, trials=%d, generations=%d",id,population_size,dim_x, dim_y,  initial_fitness, agent_no, resource_no, trials, generations);
 
     }
 

@@ -5,38 +5,52 @@ public class Application {
 
     public static void main(String[] args){
 
-//        Config config = new Config(Arrays.asList(args).stream().mapToInt(Integer::parseInt).toArray());
+
+
+        double[] resources =Arrays.stream(Arrays.copyOfRange(args, 1, args.length))
+                .mapToDouble(Double::parseDouble)
+                .toArray();
+
+
 
         Config config = new Config().load("config");
-
-        Environment environment = new Environment(config);
-
-        Neuroevolution ne = new Neuroevolution(environment,config);
-
-        ne.begin();
+        config.setAgent_no(Integer.parseInt(args[0]));
+        config.setId(Integer.parseInt(args[0]));
+        config.loadStatsRecorders();
 
 
+        Config[] configs = new Config[resources.length];
+        Thread[] threads = new Thread[resources.length];
 
 
-//        Thread thread = new Thread(ne);
-//
-//
-//        try {
-//
-//            long startTime = System.nanoTime();
-//
-//            thread.start();
-//            thread.join();
-//
-//            long endTime = System.nanoTime();
-//
-//            long duration = (endTime - startTime);
-//            System.out.println("Total Duration: " + duration / 1000000);
-//        } catch (InterruptedException e){
-//            e.printStackTrace();
-//        }
+        for (int index=0; index< resources.length; index++){
+
+            configs[index]= new Config(config);
+            configs[index].setResource_no(resources[index]);
+
+            Environment environment = new Environment(configs[index]);
+
+            threads[index]=new Thread(new Neuroevolution(environment,configs[index]));
+            threads[index].start();
 
 
+        }
+
+
+        for (Thread thread : threads) {
+
+
+            try{
+                thread.join();
+            } catch (InterruptedException e){
+                e.printStackTrace();
+            }
+
+        }
+
+        System.out.println("Finished Evolution");
+
+        config.closeStatsRecorders();
 
 
     }

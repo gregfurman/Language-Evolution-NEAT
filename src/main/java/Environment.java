@@ -321,6 +321,8 @@ public class Environment implements Runnable{
     int MAX_X, MAX_Y, AGENT_NO,RESOURCE_NO;
     private int initial_fitness;
 
+    Config config;
+
 
 
 
@@ -386,6 +388,7 @@ public class Environment implements Runnable{
         RESOURCE_NO = environment.RESOURCE_NO;
         AGENT_NO = environment.AGENT_NO;
         network = environment.network;
+        this.config = environment.config;
 
 
     }
@@ -393,6 +396,8 @@ public class Environment implements Runnable{
     public Environment(Config config){
 
         this(config.getDim_x(),config.getDim_y(),config.getInitial_fitness());
+
+        this.config = config;
 
         AGENT_NO = config.getAgent_no();
         RESOURCE_NO = config.getResource_no();
@@ -568,6 +573,7 @@ public class Environment implements Runnable{
             element.getAsJsonObject().addProperty("Generation", generation.get());
             element.getAsJsonObject().addProperty("Status",status);
             element.getAsJsonObject().addProperty("trial",trial);
+            element.getAsJsonObject().addProperty("resources",config.getResource_no());
             wordlist[agent.getId()] = gson.toJson(element);
         }
 
@@ -726,6 +732,7 @@ public class Environment implements Runnable{
             ForkJoinPool pool = new ForkJoinPool();
             return pool.invoke(new parallelSum(grid, 0, grid.length));
         } else{
+
             return agents.stream().mapToDouble(Agent::getFitness).sum();
 
 
