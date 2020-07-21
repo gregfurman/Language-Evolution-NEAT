@@ -1,11 +1,9 @@
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 
 public class StatsRecorder {
 
-    BufferedWriter bufferedWriter;
+    Object bufferedObject;
+    private static int default_buffer_size = 1024;
 
 
     public StatsRecorder(String filename){
@@ -19,15 +17,19 @@ public class StatsRecorder {
                 file.createNewFile();
             }
 
-            bufferedWriter = new BufferedWriter(new FileWriter(filename));
+            bufferedObject = new BufferedWriter(new FileWriter(filename));
         } catch (IOException e){
             System.out.println("File creation failed.");
         }
 
     }
 
-    public StatsRecorder(String filename, String header){
 
+    public StatsRecorder(String filename, String header){
+        this(filename,header,default_buffer_size);
+    }
+
+    public StatsRecorder(String filename, String header, int bufferSize){
 
         File file = new File(filename);
 
@@ -39,10 +41,19 @@ public class StatsRecorder {
                 file.createNewFile();
             }
 
-            bufferedWriter = new BufferedWriter(new FileWriter(filename,newfile));
+
+//            FileOutputStream fos = new FileOutputStream(file);
+//            OutputStreamWriter osr = new OutputStreamWriter(fos, "UTF-8");
+//            bufferedWriter = new BufferedWriter(osr,bufferSize);
+
+//            bufferedWriter = new BufferedWriter(new FileWriter(filename,newfile),bufferSize);
+            bufferedObject = new BufferedOutputStream(
+                    new FileOutputStream(file,true),bufferSize);
+//            bufferedOutputStream = new BufferedOutputStream(
+//                    new FileOutputStream(file,true),bufferSize);
 
             if (!newfile)
-                bufferedWriter.write(header + "\n");
+                write(header + "\n");
 
         } catch (IOException e){
             System.out.println("File creation failed.");
@@ -54,7 +65,12 @@ public class StatsRecorder {
     public boolean write(String line){
 
         try {
-            bufferedWriter.write(line + "\n");
+
+            if (bufferedObject.getClass() == BufferedOutputStream.class)
+                ((BufferedOutputStream) bufferedObject).write((line + "\n").getBytes());
+            else
+                ((BufferedWriter) bufferedObject).write(line + "\n");
+
         } catch (IOException e){
             System.out.println("Failed to write line");
             return false;
@@ -67,8 +83,15 @@ public class StatsRecorder {
 
     public boolean close(){
 
+        Class objClass = bufferedObject.getClass();
+
         try {
-            bufferedWriter.close();
+
+            if (objClass == BufferedWriter.class)
+                ((BufferedWriter) bufferedObject).close();
+            else if (objClass == BufferedOutputStream.class)
+                ((BufferedOutputStream) bufferedObject).close();
+
         } catch (IOException e){
             return false;
         }
@@ -78,8 +101,15 @@ public class StatsRecorder {
 
     public boolean flush(){
 
+        Class objClass = bufferedObject.getClass();
+
         try {
-            bufferedWriter.flush();
+
+            if (objClass == BufferedWriter.class)
+                ((BufferedWriter) bufferedObject).flush();
+            else if (objClass == BufferedOutputStream.class)
+                ((BufferedOutputStream) bufferedObject).flush();
+
         } catch (IOException e){
             return false;
         }
@@ -88,5 +118,12 @@ public class StatsRecorder {
     }
 
 
+
+    public long getBuffer(){
+
+        return 0;
+
+
+    }
 
 }

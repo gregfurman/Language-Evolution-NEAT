@@ -42,14 +42,12 @@ public class Neuroevolution implements Runnable {
     public void begin(){
 
         ScoreCalculate scoreCalculator = new ScoreCalculate(environment, config);
-        NEATPopulation population =  new NEATPopulation(9,1,POPULATION_SIZE);
-        population.setInitialConnectionDensity(1.0);
-        population.reset();
+
+        NEATPopulation population = loadPopulation();
 
         TrainEA evolution = NEATUtil.constructNEATTrainer(population,scoreCalculator);
 
-        System.out.println("Experiment: " +config.getId() +"\nStarting Evolution with "+ POPULATION_SIZE + " networks\n***************************\n");
-
+        System.out.println("***************************\nRunning experiment with following parameters\n" + config.experimentDetails() + "\n***************************\n");
 
             for (int i = evolution.getIteration(); i < iteration; i++) {
 
@@ -57,17 +55,16 @@ public class Neuroevolution implements Runnable {
 
                 evolution.iteration();
 
+                savePopulation(evolution.getPopulation());
 
                 double best = evolution.getBestGenome().getScore();
 
-                config.getFitnessStats().write((i+1)+"," + config.getCalculator().summaryStatistics() + "," + config.getTrialCalculator().sum(true)+","+ best + ","+config.getResource_no() + ","+config.getAgent_no());
+                config.recordFitness(i,best);
 
                 System.out.println("Best Score: " +best + "\n");
                 generation.next();
 
-
             }
-
 
             evolution.finishTraining();
 
@@ -75,43 +72,54 @@ public class Neuroevolution implements Runnable {
 
 
 
-    public void savePopulation(NEATPopulation population){
+    public void savePopulation(Population population){
         PersistNEATPopulation persistNEATPopulation = new PersistNEATPopulation();
 
+
+        String filename = String.format("population_%d_%d.eg",config.getAgent_no(),config.getResource_no());
+
         try {
-            persistNEATPopulation.save(new FileOutputStream("population.eg"),population);
+            persistNEATPopulation.save(new FileOutputStream(filename),population);
         } catch (IOException e){
             e.printStackTrace();
         }
     }
 
-    public void loadPopulation(NEATPopulation population){
-        PersistNEATPopulation persistNEATPopulation = new PersistNEATPopulation();
+    public NEATPopulation loadPopulation(){
 
-        try {
-            population=(NEATPopulation) persistNEATPopulation.read(new FileInputStream("population.eg"));
-        } catch (IOException e){
-            e.printStackTrace();
+        if (config.isLoadPopulation()) {
+
+            PersistNEATPopulation persistNEATPopulation = new PersistNEATPopulation();
+
+            String filename = String.format("population_%d_%d.eg", config.getAgent_no(), config.getResource_no());
+
+
+            File file = new File(filename);
+
+            if (file.exists() && file.isFile()) {
+
+                try {
+
+                    FileInputStream stream = new FileInputStream(filename);
+
+                    if (stream.getChannel().size() > 0)
+                        return (NEATPopulation) persistNEATPopulation.read(new FileInputStream(filename));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+            }
+
         }
-    }
 
+        NEATPopulation population = new NEATPopulation(9,1,POPULATION_SIZE);
+        population.setInitialConnectionDensity(1.0);
+        population.reset();
 
-
-
-    public String summaryStatistics(Population population){
-
-        double currentAverage = population.flatten().stream().mapToDouble(Genome::getScore).average().getAsDouble();
-        double variance = population.flatten().stream()
-                .map(i -> i.getScore() - currentAverage)
-                .map(i -> i*i)
-                .mapToDouble(i -> i).sum()/(population.size()-1);
-
-
-        System.out.println("Average: " + currentAverage + "\nVariance: " + variance);
-
-        return currentAverage+","+variance;
+        return population;
 
     }
+
 
     @Override
     public void run(){

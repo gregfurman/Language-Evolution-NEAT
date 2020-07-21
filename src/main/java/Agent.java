@@ -23,6 +23,8 @@ public class Agent extends Cell implements Runnable{
     private HashMap<Character, String> wordMap = new HashMap();
     double fitness;
 
+    private char AGENT_TYPE;
+
     double[] inputs;
 
     Resource resource;
@@ -55,6 +57,19 @@ public class Agent extends Cell implements Runnable{
         this.fitness= fitness;
 
     }
+
+
+    public Agent(int id, MLRegression model, int fitness, char type){
+
+        this.id = id;
+        this.model = model;
+        this.fitness= fitness;
+        this.AGENT_TYPE = type;
+
+    }
+
+
+
     public Agent(Agent agent){
         this.id = agent.id;
         fitness = agent.fitness;
@@ -93,20 +108,34 @@ public class Agent extends Cell implements Runnable{
 
     public String generateTerm(){
 
-        Random random = new Random();
+        return create(new Random());
+
+    }
+
+    public String generateTerm(int seed){
+
+        return create(new Random(seed));
+
+    }
+
+    private String create(Random random){
 
         char[] letters = "abcdefghijklmnopqrstuvxyz".toCharArray();
         String term = "";
-
-
 
         for (int i = 0; i < random.nextInt(TERM_SIZE_MAX-TERM_SIZE_MIN)+TERM_SIZE_MIN; i++){
             term += letters[random.nextInt(letters.length)];
         }
 
+        if (AGENT_TYPE != 'X')
+            return term.toUpperCase();
+
         return term;
 
+
+
     }
+
 
     public double convertTerm(char type){
 
@@ -135,6 +164,15 @@ public class Agent extends Cell implements Runnable{
 
         for (char type: types)
         wordMap.put(type, generateTerm());
+
+    }
+
+    public void configureWordMap(int seed){
+
+        char[] types = {'A','B','C'};
+
+        for (char type: types)
+            wordMap.put(type, generateTerm(seed));
 
     }
 

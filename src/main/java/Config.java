@@ -5,6 +5,7 @@ import java.io.IOException;
 public class Config {
 
     int population_size,dim_x, dim_y,  initial_fitness, agent_no, resource_no, trials, generations,id;
+    boolean loadPopulation;
 
     StatsRecorder wordList, fitnessStats;
 
@@ -48,7 +49,7 @@ public class Config {
         this.id = getId();
         this.calculator = new StatsCalculator(true);
         this.trialCalculator = new StatsCalculator(true);
-
+        this.loadPopulation = config.isLoadPopulation();
 
     }
 
@@ -117,6 +118,14 @@ public class Config {
         return id;
     }
 
+    public boolean isLoadPopulation() {
+        return loadPopulation;
+    }
+
+    public void loadPopulation(boolean load){
+        loadPopulation = load;
+    }
+
     public void setAgent_no(int agent_no) {
         this.agent_no = agent_no;
     }
@@ -133,7 +142,7 @@ public class Config {
 
     public void loadStatsRecorders(){
 
-        fitnessStats = new StatsRecorder("fitness_"+getId()+".csv","Generation,average,MSB,MSW,best,resources,agents");
+        fitnessStats = new StatsRecorder("fitness_"+getId()+".csv","Generation,average,MSB,MSW,best,resources,agents",256);
         wordList =new StatsRecorder("wordList_"+getId()+".json");
 
 
@@ -147,6 +156,13 @@ public class Config {
 
     public StatsRecorder getFitnessStats() {
         return fitnessStats;
+    }
+
+
+    public void recordFitness(int generation, double best){
+
+        getFitnessStats().write((generation+1)+"," + getCalculator().summaryStatistics() + "," + getTrialCalculator().sum(true)+","+ best + ","+ getResource_no() + ","+ getAgent_no());
+
     }
 
     public StatsRecorder getWordList() {
@@ -167,4 +183,11 @@ public class Config {
 
     }
 
+
+    public String experimentDetails(){
+
+
+        return "Agents: " + getAgent_no() + "\nResources: " + getResource_no() + "\nNetworks: " + getPopulation_size();
+
+    }
 }

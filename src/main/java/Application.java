@@ -7,7 +7,7 @@ public class Application {
 
 
 
-        double[] resources =Arrays.stream(Arrays.copyOfRange(args, 1, args.length))
+        double[] resources =Arrays.stream(Arrays.copyOfRange(args, 1, args.length-1))
                 .mapToDouble(Double::parseDouble)
                 .toArray();
 
@@ -16,6 +16,7 @@ public class Application {
         Config config = new Config().load("config");
         config.setAgent_no(Integer.parseInt(args[0]));
         config.setId(Integer.parseInt(args[0]));
+        config.loadPopulation(Boolean.parseBoolean(args[args.length-1]));
         config.loadStatsRecorders();
 
 
@@ -32,7 +33,6 @@ public class Application {
 
             threads[index]=new Thread(new Neuroevolution(environment,configs[index]));
             threads[index].start();
-
 
         }
 

@@ -89,10 +89,9 @@ public class StatsCalculator {
     protected double sum(boolean reset){
 
      double sum=0;
-//             = scores.stream().mapToDouble(Double::shortValue).sum();
 
-        synchronized(scores) {  // Synchronizing on m, not s!
-            Iterator i = scores.iterator(); // Must be in synchronized block
+        synchronized(scores) {
+            Iterator i = scores.iterator();
             while (i.hasNext())
                 sum += ((Double) i.next());
         }
