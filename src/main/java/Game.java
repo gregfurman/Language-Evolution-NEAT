@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import static java.util.Comparator.comparing;
 
@@ -60,6 +61,7 @@ public class Game implements Runnable{
             }
 
         }
+
 
         Agent winner = agents.stream().max(comparing(Agent::getBid)).get();
         winner.consume(resource.reward*((double) (agents.size()-1)/(double)agents.size()),true);

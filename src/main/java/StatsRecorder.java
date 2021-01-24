@@ -17,7 +17,7 @@ public class StatsRecorder {
                 file.createNewFile();
             }
 
-            bufferedObject = new BufferedWriter(new FileWriter(filename));
+            bufferedObject = new BufferedWriter(new FileWriter(filename,true));
         } catch (IOException e){
             System.out.println("File creation failed.");
         }
@@ -53,7 +53,7 @@ public class StatsRecorder {
 //                    new FileOutputStream(file,true),bufferSize);
 
             if (!newfile)
-                write(header + "\n");
+                write(header);
 
         } catch (IOException e){
             System.out.println("File creation failed.");

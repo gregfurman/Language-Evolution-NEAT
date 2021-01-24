@@ -2,10 +2,10 @@ import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import org.encog.ml.MLRegression;
 import org.encog.neural.neat.NEATNetwork;
+import org.encog.neural.neat.NEATPopulation;
 
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 
 public class Environment implements Runnable{
@@ -62,7 +62,6 @@ public class Environment implements Runnable{
                                                     resource_x = colNum;
                                                     resource_y = rowNum;
 
-//                                                    System.out.println(colNum + " " + rowNum);
                                                     colNum = i;
                                                     rowNum = j;
                                                     type = Agent.class;
@@ -132,7 +131,6 @@ public class Environment implements Runnable{
                                                 resource_x = colNum;
                                                 resource_y = rowNum;
 
-//                                                    System.out.println(colNum + " " + rowNum);
                                                 colNum = i;
                                                 rowNum = j;
                                                 type = Agent.class;
@@ -202,7 +200,6 @@ public class Environment implements Runnable{
             for (int i = lo; i < hi; ++i)
                 for (int j = lo; j < hi; ++j){
                     if (grid[i][j].getClass() == Agent.class ) {
-//                        if (((Agent) grid[i][j]).getFitness() >= 0.5){
 
                         if(true){
                             int[] coord = coord(i, j);
@@ -313,8 +310,7 @@ public class Environment implements Runnable{
     Cell[][] grid;
 
     NEATNetwork network;
-    ConcurrentHashMap networkIDs;
-    AtomicBoolean running;
+
     List<Agent>agents;
     Generation generation;
 
@@ -329,10 +325,6 @@ public class Environment implements Runnable{
     public Environment(int x, int y){
 
         agents = Collections.synchronizedList(new ArrayList<>());
-        networkIDs = new ConcurrentHashMap();
-
-//        agents = new ConcurrentLinkedQueue<>();
-//        agents = new ArrayList<>();
 
         grid = new Cell[x][y];
 
@@ -347,8 +339,7 @@ public class Environment implements Runnable{
 
     public Environment(int x, int y, int initial_fitness){
 
-        agents = Collections.synchronizedList(new ArrayList<>());
-        networkIDs = new ConcurrentHashMap();
+        agents = new ArrayList<>();
         this.initial_fitness = initial_fitness;
 
         grid = new Cell[x][y];
@@ -376,22 +367,38 @@ public class Environment implements Runnable{
 
     }
 
-    public Environment(Environment environment){
+    public Environment(Environment environment) {
 
         generation = environment.generation;
-        agents = Collections.synchronizedList(new ArrayList<>());
-        networkIDs = new ConcurrentHashMap();
+        agents = new ArrayList<>();
+
         this.initial_fitness = environment.initial_fitness;
         MAX_X = environment.MAX_X;
         MAX_Y = environment.MAX_Y;
-        this.grid = java.util.Arrays.stream(environment.grid).map(el -> el.clone()).toArray($ -> environment.grid.clone());
+
+        grid = new Cell[environment.grid.length][environment.grid[0].length];
+
+        for (int row = 0; row < environment.grid.length; row++)
+            for (int col=0; col < environment.grid[0].length; col++) {
+                if (environment.grid[row][col].getClass() == Agent.class) {
+                    Agent agent = new Agent((Agent)environment.grid[row][col]);
+                    grid[row][col] = agent;
+                    agents.add(agent);
+                } else if (environment.grid[row][col].getClass() == Resource.class){
+                    grid[row][col] = new Resource((Resource)environment.grid[row][col]);
+                } else
+                    grid[row][col] = new Cell();
+        }
+
+
+
         RESOURCE_NO = environment.RESOURCE_NO;
         AGENT_NO = environment.AGENT_NO;
         network = environment.network;
         this.config = environment.config;
 
-
     }
+
 
     public Environment(Config config){
 
@@ -405,28 +412,51 @@ public class Environment implements Runnable{
     }
 
 
-    public void loadGrid(int totalResources,int totalAgents){
-        loadResources(totalResources);
-        loadAgents(totalAgents);
+    public Environment(Config config, NEATPopulation population){
+
+        this(config);
+        this.network = (NEATNetwork)population.getCODEC().decode(population.getBestGenome());;
 
     }
+
+
+    public Environment deepcopy(){
+
+        Environment environment = new Environment(this);
+        environment.agents = new ArrayList<>();
+        for (Agent agent : agents){
+            environment.agents.add(new Agent(agent));
+        }
+
+        return environment;
+    }
+
 
     public void loadGrid(){
-        loadResources();
         loadAgents();
+        loadResources();
+
 
     }
 
-    public void loadGrid(int totalResources,int totalAgents, NEATNetwork network){
-        loadResources(totalResources);
-        loadAgents(totalAgents, network);
+
+    private int[] k_quantile(int N, int k){
+
+        int[] quantiles = new int[k];
+
+        for (int i = 0; i < k; i++){
+            quantiles[i] = (N-1)*(i+1)/k;
+        }
+
+        return quantiles;
+
 
     }
 
     void loadResources(int resources){
 
-        int split_1 = Math.floorDiv(resources,3);
-        int split_2 = (2*resources)/3;
+        char[] resource_types = {'A','B','C','D','E'};
+        int[] quantiles = k_quantile(resources,config.getLanguageNumber());
 
         Random random = new Random();
 
@@ -434,17 +464,20 @@ public class Environment implements Runnable{
         int y = random.nextInt(MAX_Y);
 
         int counter = 0;
+        int index = 0;
+
         char type = ' ';
         do{
 
 
-            if (counter < split_1){
-                type = 'A';
-            } else if (counter < split_2){
-                type = 'B';
-            } else if (counter >= split_2){
-                type= 'C';
+            if (counter <= quantiles[index]){
+
+                type=resource_types[index];
+
+            } else {
+                index++;
             }
+
 
             if (grid[x][y].getClass() == Cell.class){
                 counter++;
@@ -454,7 +487,9 @@ public class Environment implements Runnable{
             x = random.nextInt(MAX_X);
             y = random.nextInt(MAX_Y);
 
-        } while(counter < resources);
+        } while(counter < resources && counter + config.getAgent_no() < config.getDim_y()*config.getDim_x());
+
+
 
     }
 
@@ -463,33 +498,11 @@ public class Environment implements Runnable{
         loadResources(RESOURCE_NO);
     }
 
-    void loadAgents(int totalAgents){
 
-        Random random = new Random();
-
-        int x = random.nextInt(MAX_X);
-        int y = random.nextInt(MAX_Y);
-        int counter = 0;
-        do{
-
-            if (grid[x][y].getClass() == Cell.class){
-
-                Agent agent = new Agent(counter);
-                agent.configureWordMap();
-                grid[x][y] = agent;
-                agents.add(agent);
-                counter++;
-            }
-
-            x = random.nextInt(MAX_X);
-            y = random.nextInt(MAX_Y);
-
-        } while(counter < totalAgents);
-
-    }
 
     void loadAgents(int totalAgents, NEATNetwork network){
 
+        char[] types = {'A','B','C','D','E'};
         Random random = new Random();
 
         int x = random.nextInt(MAX_X);
@@ -499,7 +512,7 @@ public class Environment implements Runnable{
 
             if (grid[x][y].getClass() == Cell.class){
                 Agent agent = new Agent(counter, network, initial_fitness);
-                agent.configureWordMap();
+                agent.configureWordMap(Arrays.copyOfRange(types,0,config.getLanguageNumber()));
                 grid[x][y] = agent;
                 agents.add(agent);
                 counter++;
@@ -512,29 +525,13 @@ public class Environment implements Runnable{
 
     }
 
-    void loadAgents(NEATNetwork network){
-
-        loadAgents(AGENT_NO,network);
-
-    }
-
     void loadAgents(){
 
         loadAgents(AGENT_NO,network);
 
     }
 
-    public MLRegression getNetwork(int hashcode){
 
-        return (MLRegression) networkIDs.get(hashcode);
-
-    }
-
-
-    public Agent getAgent(int hashcode){
-
-        return (Agent)networkIDs.get(hashcode);
-    }
 
 
 
@@ -550,7 +547,7 @@ public class Environment implements Runnable{
         Gson gson = new Gson();
         for (Agent agent :  agents){
             JsonElement element = agent.getWordMap();
-            element.getAsJsonObject().addProperty("Generation",generation.get());
+            element.getAsJsonObject().addProperty("resources",config.getResource_no());
             wordlist[agent.getId()] = gson.toJson(element);
         }
 
@@ -558,26 +555,78 @@ public class Environment implements Runnable{
 
     }
 
-    public String[] getWordList(boolean begin, int trial){
+    public String[] getWordList(boolean begin, int trial) {
 
         String status;
         if (begin)
-            status="start";
+            status = "start";
         else
-            status="finished";
+            status = "finished";
 
         String[] wordlist = new String[agents.size()];
         Gson gson = new Gson();
-        for (Agent agent : agents) {
-            JsonElement element = agent.getWordMap();
-            element.getAsJsonObject().addProperty("Generation", generation.get());
-            element.getAsJsonObject().addProperty("Status",status);
-            element.getAsJsonObject().addProperty("trial",trial);
-            element.getAsJsonObject().addProperty("resources",config.getResource_no());
-            wordlist[agent.getId()] = gson.toJson(element);
+
+        if (config.isTrain()) {
+
+
+            for (Agent agent : agents) {
+                JsonElement element = agent.getWordMap();
+                element.getAsJsonObject().addProperty("Generation", generation.get());
+                element.getAsJsonObject().addProperty("Status", status);
+                element.getAsJsonObject().addProperty("trial", trial);
+                element.getAsJsonObject().addProperty("resources", config.getResource_no());
+                wordlist[agent.getId()] = gson.toJson(element);
+            }
+        } else {
+
+            for (Agent agent : agents) {
+                JsonElement element = agent.getWordMap();
+                element.getAsJsonObject().addProperty("Status", status);
+                element.getAsJsonObject().addProperty("trial", trial);
+                element.getAsJsonObject().addProperty("resources", config.getResource_no());
+                wordlist[agent.getId()] = gson.toJson(element);
+
+            }
+
         }
 
-    return wordlist;
+
+        return wordlist;
+
+    }
+
+    public String[] getWordList(int trial, int env) {
+
+        String[] wordlist = new String[agents.size()];
+        Gson gson = new Gson();
+
+        if (config.isTrain()) {
+
+            for (Agent agent : agents) {
+                JsonElement element = agent.getWordMap();
+                element.getAsJsonObject().addProperty("Generation", generation.get());
+                element.getAsJsonObject().addProperty("trial", trial);
+                element.getAsJsonObject().addProperty("resources", config.getResource_no());
+                element.getAsJsonObject().addProperty("environment", env);
+
+                wordlist[agent.getId()] = gson.toJson(element);
+            }
+        } else {
+
+            for (Agent agent : agents) {
+                JsonElement element = agent.getWordMap();
+                element.getAsJsonObject().addProperty("trial", trial);
+                element.getAsJsonObject().addProperty("resources", config.getResource_no());
+                element.getAsJsonObject().addProperty("environment", env);
+
+                wordlist[agent.getId()] = gson.toJson(element);
+
+            }
+
+        }
+
+
+        return wordlist;
 
     }
 
@@ -598,39 +647,31 @@ public class Environment implements Runnable{
 
         int iteration = 0;
         boolean multithreaded = false;
+        boolean overflow = config.getResource_no() + config.getAgent_no() > config.getDim_x()*config.getDim_y();
 
-
-        running = new AtomicBoolean(true);
-
+        int prev = count(Resource.class);
         while(count(Resource.class) > 0 && iteration < MAX){
             ++iteration;
             move(multithreaded);
             check(multithreaded);
 
         }
+        if (overflow){
+            loadResources(config.getResource_no()- prev);
+            while(count(Resource.class) > 0 && iteration < MAX){
+                ++iteration;
+                move(multithreaded);
+                check(multithreaded);
+            }
 
+        }
 
-        running.getAndSet(false);
 
     }
 
     public void begin(){
 
-        int iteration = 0;
-        boolean multithreaded = false;
-
-
-        running = new AtomicBoolean(true);
-
-        while(count(Resource.class) > 0 && iteration < Movement_Limit){
-            ++iteration;
-            move(multithreaded);
-            check(multithreaded);
-            displayNumber();
-        }
-
-
-        running.getAndSet(false);
+        begin(Movement_Limit);
 
     }
 
@@ -767,10 +808,19 @@ public class Environment implements Runnable{
     }
 
 
+
+    public void setNetwork(MLRegression method){
+        for (Agent agent: agents
+             ) {agent.setNetwork(method);
+
+        }
+
+    }
+
     @Override
     public void run() {
 
-        begin();
+        begin(Movement_Limit);
 
     }
 }

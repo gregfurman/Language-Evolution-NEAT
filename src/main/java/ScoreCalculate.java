@@ -58,7 +58,7 @@ public class ScoreCalculate implements CalculateScore {
         score = trialScores.average(false);
 
 
-        config.getTrialCalculator().add(trialScores.SSG(score)/(config.getPopulation_size()*(config.getTrials()-1)));
+        config.getTrialCalculator().add(trialScores.SSG(score) / (config.getPopulation_size() * (config.getTrials() - 1)));
         config.getCalculator().add(score);
 
 
@@ -66,6 +66,14 @@ public class ScoreCalculate implements CalculateScore {
 
 
     }
+
+
+    public double calculateControlScore() {
+
+       return calculateScore(null);
+
+    }
+
 
     void recordWords(String[] wordlist){
         boolean success=true;

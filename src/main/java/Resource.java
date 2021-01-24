@@ -27,6 +27,13 @@ public class Resource extends Cell {
         else
             reward = random.nextInt(8)+1;
 
+    }
+
+    Resource(Resource resource){
+
+        active = resource.active;
+        type = resource.type;
+        reward = resource.reward;
 
     }
 

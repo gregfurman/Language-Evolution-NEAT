@@ -3,8 +3,8 @@ public class SimulationDriver implements Runnable{
 
 
     Environment environment;
-    Environment[] environments;
     int iterations;
+    final static int DEFAULT_ITERATIONS=5000;
 
 
     public SimulationDriver(Environment environment, int iterations){
@@ -14,21 +14,13 @@ public class SimulationDriver implements Runnable{
 
     }
 
+    public SimulationDriver(Environment environment){
 
-
-    public SimulationDriver(Environment environment, int iterations, int trials){
-
-        environments = new Environment[trials];
-
-        for (int index=0; index<trials;index++){
-
-            environments[index] = new Environment(environment);
-
-        }
-
-        this.iterations = iterations;
+        this.environment = environment;
+        this.iterations = DEFAULT_ITERATIONS;
 
     }
+
 
     public double getFitness(){
         return environment.getFitness(false);
@@ -47,7 +39,6 @@ public class SimulationDriver implements Runnable{
 
         environment.loadGrid();
         environment.begin(iterations);
-
 
     }
 

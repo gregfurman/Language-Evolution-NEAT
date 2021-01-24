@@ -6,9 +6,8 @@ import org.encog.ml.MLRegression;
 import org.encog.ml.data.MLData;
 import org.encog.ml.data.basic.BasicMLData;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Random;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class Agent extends Cell implements Runnable{
 
@@ -73,7 +72,9 @@ public class Agent extends Cell implements Runnable{
     public Agent(Agent agent){
         this.id = agent.id;
         fitness = agent.fitness;
-        wordMap = agent.wordMap;
+        wordMap = (HashMap<Character, String>) agent.wordMap.entrySet().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        setNetwork(agent.model);
     }
 
 
@@ -127,7 +128,7 @@ public class Agent extends Cell implements Runnable{
             term += letters[random.nextInt(letters.length)];
         }
 
-        if (AGENT_TYPE != 'X')
+        if (AGENT_TYPE == 'X')
             return term.toUpperCase();
 
         return term;
@@ -145,12 +146,21 @@ public class Agent extends Cell implements Runnable{
 
         String convertedTerm= "0.";
 
-        for (char letter :  term.toCharArray()){
+        if (term==null){
+            System.out.println("Crash");
+            System.out.println(type + " " + wordMap);
+            System.exit(0);
 
-            convertedTerm += (int)letter + "";
+
+        } else {
+
+
+            for (char letter : term.toCharArray()) {
+
+                convertedTerm += (int) letter + "";
+            }
+
         }
-
-
 
         return Double.valueOf(convertedTerm);
 
@@ -164,6 +174,15 @@ public class Agent extends Cell implements Runnable{
 
         for (char type: types)
         wordMap.put(type, generateTerm());
+
+    }
+
+
+    public void configureWordMap(char[] types){
+
+
+        for (char type: types)
+            wordMap.put(type, generateTerm());
 
     }
 
@@ -182,47 +201,46 @@ public class Agent extends Cell implements Runnable{
 
         inputs = new double[9];
 
-//        for (int i = 0; i <  neighbours.size(); i++){
-//
-//            inputs[i] =
-//
-//        }
-
-
     }
 
     public void NamingGame(){
 
 
-        inputs = new double[9];
+        if (model != null) {
 
-        for (int i = 0; i < neighbours.size(); i++){
+            inputs = new double[9];
 
-            inputs[i] = neighbours.get(i).convertTerm(resource.type);
-        }
+            for (int i = 0; i < neighbours.size(); i++) {
 
-        inputs[7] = resource.reward;
-
-
-        try {
-
-            if (fitness <= 0) {
-                fitness = 0;
+                inputs[i] = neighbours.get(i).convertTerm(resource.type);
             }
 
-            String fitness = String.valueOf(this.fitness).replace(".", "");
-            inputs[8] = Double.valueOf("0." + fitness);
+            inputs[7] = resource.reward;
 
 
+            try {
 
-        } catch (NumberFormatException e){
-            System.out.println("Cannot parse fitness: " + fitness + " " + this.fitness);
+                if (fitness <= 0) {
+                    fitness = 0;
+                }
+
+                String fitness = String.valueOf(this.fitness).replace(".", "");
+                inputs[8] = Double.valueOf("0." + fitness);
+
+
+            } catch (NumberFormatException e) {
+                System.out.println("Cannot parse fitness: " + fitness + " " + this.fitness);
+            }
+
+
+            MLData modelInput = new BasicMLData(inputs);
+            MLData predict = model.compute(modelInput);
+            setBid(predict.getData(0));
+            return;
         }
 
-
-        MLData modelInput = new BasicMLData(inputs);
-        MLData predict = model.compute(modelInput);
-        setBid(predict.getData(0));
+        Random rand = new Random();
+        setBid(rand.nextDouble());
     }
 
     public double getScore(double[] inputs){
@@ -266,7 +284,6 @@ public class Agent extends Cell implements Runnable{
         else
             this.bid = bid*fitness;
 
-
     }
 
     double getBid(){
@@ -291,10 +308,6 @@ public class Agent extends Cell implements Runnable{
     }
 
     void consume(double reward, boolean winner){
-
-        if (Double.isNaN(reward) || Double.isNaN(getBid())){
-            System.out.println(reward + " " +getBid());
-        }
 
         if (winner)
             fitness += (reward-getBid());
@@ -341,6 +354,8 @@ public class Agent extends Cell implements Runnable{
         JsonElement element = gson.toJsonTree(wordMap);
         element.getAsJsonObject().addProperty("id",getId());
         element.getAsJsonObject().addProperty("fitness",getFitness());
+
+        if (model!=null)
         element.getAsJsonObject().addProperty("hashcode",model.hashCode());
         return element;
 

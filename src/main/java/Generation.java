@@ -17,5 +17,12 @@ public class Generation {
         return generation.get();
     }
 
+    void set(int generation){
+
+        this.generation.getAndSet(generation);
+        System.out.println(generation);
+
+    }
+
 
 }

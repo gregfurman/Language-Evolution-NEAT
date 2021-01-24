@@ -103,4 +103,10 @@ public class StatsCalculator {
      return sum;
     }
 
+
+    protected double max(){
+        return Collections.max(scores);
+    }
+
+
 }

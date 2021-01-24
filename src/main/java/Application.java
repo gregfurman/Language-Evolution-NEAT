@@ -1,3 +1,5 @@
+import org.encog.neural.neat.NEATPopulation;
+
 import java.util.Arrays;
 
 public class Application {
@@ -6,53 +8,138 @@ public class Application {
     public static void main(String[] args){
 
 
+        Config config = new Config().load("config");
 
-        double[] resources =Arrays.stream(Arrays.copyOfRange(args, 1, args.length-1))
+
+
+        if (config.isTrain()) {
+
+        double[] resources =Arrays.stream(Arrays.copyOfRange(args, 1, args.length))
                 .mapToDouble(Double::parseDouble)
                 .toArray();
 
-
-
-        Config config = new Config().load("config");
         config.setAgent_no(Integer.parseInt(args[0]));
         config.setId(Integer.parseInt(args[0]));
-        config.loadPopulation(Boolean.parseBoolean(args[args.length-1]));
-        config.loadStatsRecorders();
+
+            Config[] configs = new Config[resources.length];
+            Thread[] threads = new Thread[resources.length];
+
+            config.loadStatsRecorders();
+
+            for (int index = 0; index < resources.length; index++) {
+
+                configs[index] = new Config(config);
+                configs[index].setResource_no(resources[index]);
 
 
-        Config[] configs = new Config[resources.length];
-        Thread[] threads = new Thread[resources.length];
+                Environment environment = new Environment(configs[index]);
 
+                threads[index] = new Thread(new Neuroevolution(environment, configs[index]));
 
-        for (int index=0; index< resources.length; index++){
+                threads[index].start();
 
-            configs[index]= new Config(config);
-            configs[index].setResource_no(resources[index]);
-
-            Environment environment = new Environment(configs[index]);
-
-            threads[index]=new Thread(new Neuroevolution(environment,configs[index]));
-            threads[index].start();
-
-        }
-
-
-        for (Thread thread : threads) {
-
-
-            try{
-                thread.join();
-            } catch (InterruptedException e){
-                e.printStackTrace();
             }
 
+
+            for (Thread thread : threads) {
+
+
+                try {
+                    thread.join();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
+            }
+
+        } else {
+
+
+            Environment environment, environment1, environment2;
+            Thread env1, env2;
+
+            int[] resources = {500, 1000, 1500, 2000,2500};
+            int[] agents  = {500,1000};
+
+            for (int agent: agents){
+
+
+                for (int resource : resources) {
+
+                    config.setResources(resource);
+                    config.setAgent_no(agent);
+
+                    config.loadStatsRecorders();
+
+                    Neuroevolution neuroevolution = new Neuroevolution(config);
+
+                    NEATPopulation population = neuroevolution.loadPopulation();
+                    neuroevolution.savePopulation(population);
+                    population = neuroevolution.loadPopulation();
+
+
+                    for (int env = 0; env < 10; env++) {
+
+                        environment = new Environment(config, population);
+                        environment.loadGrid();
+
+
+                        for (int trial = 0; trial <= config.getTrials(); trial++) {
+
+
+                            environment2 = new Environment(environment);
+                            environment1 = new Environment(environment);
+
+                            env2 = new Thread(environment2);
+                            env1 = new Thread(environment1);
+
+                            environment1.setNetwork(null);
+
+                            env1.start();
+                            env2.start();
+
+                            try {
+                                env1.join();
+                                env2.join();
+
+
+
+                                StatsRecorder wordlist = config.getWordList();
+
+                                for (String word : environment1.getWordList(trial, env)) {
+
+                                    wordlist.write(word);
+
+                                }
+
+                                for (String word : environment2.getWordList(trial, env)) {
+
+                                    wordlist.write(word);
+
+                                }
+
+                                System.out.println(String.format("Trial=%d Environment=%d Resources=%d", trial, env, resource));
+
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+
+                        }
+
+
+                    }
+
+                    config.closeStatsRecorders();
+
+
+                }
+
         }
+            }
 
-        System.out.println("Finished Evolution");
-
-        config.closeStatsRecorders();
 
 
     }
+
 
 }

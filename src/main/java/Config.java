@@ -4,8 +4,8 @@ import java.io.IOException;
 
 public class Config {
 
-    int population_size,dim_x, dim_y,  initial_fitness, agent_no, resource_no, trials, generations,id;
-    boolean loadPopulation;
+    int population_size,dim_x, dim_y,  initial_fitness, agent_no, resource_no, trials, generations,id, trial_id, language_number;
+    boolean loadPopulation,train,control;
 
     StatsRecorder wordList, fitnessStats;
 
@@ -36,6 +36,8 @@ public class Config {
 
     public Config(Config config){
 
+        this.control = config.isControl();
+        this.train = config.isTrain();
         this.population_size = config.getPopulation_size();
         this.dim_x = config.getDim_x();
         this.dim_y = config.getDim_y();
@@ -50,6 +52,8 @@ public class Config {
         this.calculator = new StatsCalculator(true);
         this.trialCalculator = new StatsCalculator(true);
         this.loadPopulation = config.isLoadPopulation();
+        this.language_number = config.getLanguageNumber();
+
 
     }
 
@@ -118,6 +122,18 @@ public class Config {
         return id;
     }
 
+    public int getLanguageNumber(){
+        return language_number;
+    }
+
+    public boolean isTrain() {
+        return train;
+    }
+
+    public boolean isControl(){
+        return control;
+    }
+
     public boolean isLoadPopulation() {
         return loadPopulation;
     }
@@ -136,17 +152,29 @@ public class Config {
     }
 
 
+    public void setResources(int resources){
+        this.resource_no = resources;
+    }
     public void setId(int id) {
         this.id = id;
     }
 
+    public void setTrial_id(int id){
+        this.trial_id = id;
+    }
+
     public void loadStatsRecorders(){
 
-        fitnessStats = new StatsRecorder("fitness_"+getId()+".csv","Generation,average,MSB,MSW,best,resources,agents",256);
-        wordList =new StatsRecorder("wordList_"+getId()+".json");
+        if (isTrain())
+            fitnessStats = new StatsRecorder("fitness_"+getAgent_no()+".csv","Generation,average,MSB,MSW,best,resources,agents",256);
+        else
+            fitnessStats = new StatsRecorder("fitness_"+getAgent_no()+".csv","iteration,average,variance,resources,agents,environment,trial",256);
+
+        wordList =new StatsRecorder("wordList_"+getAgent_no()+".json");
 
 
     }
+
 
     public void closeStatsRecorders(){
         wordList.close();
@@ -179,10 +207,16 @@ public class Config {
 
     public String toString(){
 
-        return String.format("id=%d,population_size=%d,dim_x=%d, dim_y=%d, initial_fitness=%d, agent_no=%d, resource_no=%d, trials=%d, generations=%d",id,population_size,dim_x, dim_y,  initial_fitness, agent_no, resource_no, trials, generations);
+        return String.format("id=%d,population_size=%d,dim_x=%d, dim_y=%d, initial_fitness=%d, agent_no=%d, resource_no=%d, trials=%d, generations=%d, loadpop=%b",id,population_size,dim_x, dim_y,  initial_fitness, agent_no, resource_no, trials, generations,loadPopulation);
 
     }
 
+
+    public String summaryParameters(){
+
+        return String.format("%d,%d,%d,%d",agent_no,resource_no,id,trial_id);
+
+    }
 
     public String experimentDetails(){
 
