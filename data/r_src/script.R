@@ -258,7 +258,7 @@ foreach (i=1:4,.combine=rbind) %dopar% {
   cluster.data.frame(terms[1:i],controller=TRUE)
 }
 
-ABCD_ANN = cluster.data.frame(terms,controller=TRUE)
+ABCD_ANN = cluster.data.frame(terms)
 
 {
 A_ANN = cluster.data.frame(c("A"),controller=TRUE)
@@ -350,8 +350,11 @@ summarise(largest=max(n),SS= sum( (n - mean(n) )^2 ),mean=mean(n), sd=sd(n),IQR 
 library(dplyr)
 library(rstatix)
 library(ggplot2)
-k=agent_data %>% count(resources,environment, population,type,controller,trial,cluster)
-
+k=agent_data %>% group_by(resources,environment, population,type,controller,trial,cluster) %>%
+summarise(n=n(),fitness=mean(fitness), var.fit=var(fitness))
+save(file="count_data.RData",k)
+#count(resources,environment, population,type,controller,trial,cluster) %>%
+k
 
 1 – (1800/2000)2 – (200/2000)2 = 0.18
 

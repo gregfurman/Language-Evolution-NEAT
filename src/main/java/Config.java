@@ -6,12 +6,13 @@ public class Config {
 
     int population_size,dim_x, dim_y,  initial_fitness, agent_no, resource_no, trials, generations,id, trial_id, language_number;
     boolean loadPopulation,train,control;
+    double split;
 
     StatsRecorder wordList, fitnessStats;
 
     StatsCalculator calculator, trialCalculator;
 
-    public Config(int population_size, int dim_x, int dim_y, int initial_fitness, int agent_no, int resource_no, int trials) {
+    public Config(int population_size, int dim_x, int dim_y, int initial_fitness, int agent_no, int resource_no, int trials,double split) {
         this.population_size = population_size;
         this.dim_x = dim_x;
         this.dim_y = dim_y;
@@ -19,6 +20,8 @@ public class Config {
         this.agent_no = agent_no;
         this.resource_no = resource_no;
         this.trials = trials;
+        this.split = split;
+
     }
 
     public Config(int[] config){
@@ -53,6 +56,7 @@ public class Config {
         this.trialCalculator = new StatsCalculator(true);
         this.loadPopulation = config.isLoadPopulation();
         this.language_number = config.getLanguageNumber();
+        this.split = config.getSplit();
 
 
     }
@@ -87,6 +91,8 @@ public class Config {
         return null;
 
     }
+
+    double getSplit(){return split;}
 
     public int getPopulation_size() {
         return population_size;
@@ -151,6 +157,10 @@ public class Config {
         this.resource_no = (int)Math.ceil(getDim_x()*getDim_y()*resource_no);
     }
 
+
+    void setDims(int x,int y){ this.dim_x=x; this.dim_y=y;}
+
+    void setSplit(double split){this.split = split > 1 || split <= 0 ? 1: split;}
 
     public void setResources(int resources){
         this.resource_no = resources;

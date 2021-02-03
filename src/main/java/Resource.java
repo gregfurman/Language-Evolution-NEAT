@@ -37,6 +37,9 @@ public class Resource extends Cell {
 
     }
 
+
+
+
     void consume(){
         active = false;
         type = ' ';

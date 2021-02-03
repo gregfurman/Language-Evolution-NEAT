@@ -113,7 +113,7 @@ public class Agent extends Cell implements Runnable{
 
     }
 
-    public String generateTerm(int seed){
+    public String generateTerm(long seed){
 
         return create(new Random(seed));
 
@@ -122,16 +122,17 @@ public class Agent extends Cell implements Runnable{
     private String create(Random random){
 
         char[] letters = "abcdefghijklmnopqrstuvxyz".toCharArray();
-        String term = "";
 
-        for (int i = 0; i < random.nextInt(TERM_SIZE_MAX-TERM_SIZE_MIN)+TERM_SIZE_MIN; i++){
-            term += letters[random.nextInt(letters.length)];
+        StringBuilder term = new StringBuilder( random.nextInt(TERM_SIZE_MAX-TERM_SIZE_MIN)+TERM_SIZE_MIN);
+
+        for (int i = 0; i < term.capacity(); i++){
+            term.append(letters[random.nextInt(letters.length)]);
         }
 
         if (AGENT_TYPE == 'X')
-            return term.toUpperCase();
+            return term.toString().toUpperCase();
 
-        return term;
+        return term.toString();
 
 
 
@@ -168,17 +169,10 @@ public class Agent extends Cell implements Runnable{
 
 
 
-    public void configureWordMap(){
-
-        char[] types = {'A','B','C'};
-
-        for (char type: types)
-        wordMap.put(type, generateTerm());
-
-    }
 
 
-    public void configureWordMap(char[] types){
+
+    void configureWordMap(char[] types){
 
 
         for (char type: types)
@@ -186,12 +180,11 @@ public class Agent extends Cell implements Runnable{
 
     }
 
-    public void configureWordMap(int seed){
+    public void configureWordMap(char[] types,long seed){
 
-        char[] types = {'A','B','C'};
-
+        Random random=new Random(seed);
         for (char type: types)
-            wordMap.put(type, generateTerm(seed));
+            wordMap.put(type, create(random));
 
     }
 

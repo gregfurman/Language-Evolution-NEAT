@@ -122,7 +122,6 @@ public class Neuroevolution implements Runnable {
         int resources = config.getResource_no();
 
         // CHANGE THIS LINE!!!!
-        if (agents>500) agents=500;
         if (resources > 2000) resources=2000;
 
 

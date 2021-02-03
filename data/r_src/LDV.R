@@ -11,17 +11,20 @@ load("count_data.RData")
 
 k$prop = (k$n/k$population)^2
 k$types = nchar(k$type)
-
+head(k$prop)
 y.transf.betareg <- function(y){
     n.obs <- sum(!is.na(y))
     (y * (n.obs - 1) + 0.5) / n.obs
 }
 
 df = k %>%
-   group_by(controller,population,types,resources) %>%
+   group_by(controller,population,types,resources,world,split) %>%
    filter(!(abs(n - median(n)) > 2*sd(n))) %>% ungroup() %>% 
-   group_by(resources,population,controller,types,environment,trial) %>% summarise(lvd= 1-sum(prop),n=n()) %>%
+   group_by(resources,population,controller,types,environment,trial,split,world) %>% summarise(fitness=mean(fitness),var=sum(sqrt(var.fit)),lvd= 1-sum(prop),n=n()) %>%
    ungroup()
+df
+
+ggplot(df, aes(x=lvd,y=fitness,color=controller)) + stat_summary(fun=mean, geom="line",size=0.8) #+ geom_smooth(method="lm")
 
 lvd_logit <- betareg(y.transf.betareg(lvd) ~ resources + log(population) + types + controller, data = df)
 lvd_lm <- lm(lvd ~ resources + log(population) + types + controller, data =df)
@@ -35,7 +38,7 @@ lvd_lm_interaction <- lm(lvd ~ resources + log(population) + types + controller+
 summary(lvd_logit_interaction,type="response")
 summary(lvd_lm_interaction)
 
-stargazer(coeftest(lvd_logit),(lvd_lm),type="html",omit=c("phi"),
+stargazer(coeftest(lvd_logit),(lvd_lm),type="text",omit=c("phi"),
 omit.stat=c("rsq","adj.rsq","f","n"),ci=TRUE, ci.level=0.90, single.row=TRUE,
 add.lines = list(c("R2",paste("(pseudo)",round(lvd_logit$pseudo.r.squared,4)),round(summary(lvd_lm)$r.squared,4)),
 c("Mean Absolute Error",round(mean(abs(df$lvd-predict(lvd_logit,df,type="response"))),4)
@@ -94,46 +97,68 @@ df.predictions
 df %>% group_by(resources,population) %>% summarise(ratio = resources/population, mean=mean(lvd)) %>%
 ggplot(aes(x=ratio,y=mean,color=factor(population),shape=factor(resources))) + geom_point() + geom_smooth(method="lm")+
 labs(x="Ratio of Resources to Populatio",y=" Predicted Linguistic Divsersity Index",colour="Population Size",shape="Resource Amount",title=" Predicted Average Linguistic Diversity Index\nof Agents per Resource Amount",
-caption="Clusters were formed using Complete Linkage Hierarchical Clustering on Levenshtein Dissimilarity Matrices.\n\nWhere an LDI of 1 indicates the most diversity with 0 indicaing the least.") +
+caption="Clusters formed using Complete Linkage Clustering on Levenshtein Dissimilarity Matrices.\n\nWhere an LDI of 1 indicates the most diversity with 0 indicaing the least.") +
 theme(plot.title = element_text(face="bold",size=title_size,hjust = 0.5),plot.caption =element_text(face="italic",size=lab_size,hjust = 0.5)) 
 
 
-
-
-subset(df.predictions,population==50)
 g<- df.predictions %>% group_by(resources,population) %>% summarise(lvd=mean(beta)) %>%
 ggplot(aes(y=lvd,x=resources,color=factor(population))) + geom_point() + geom_line() +
 labs(x="Resource Amount",y=" Predicted Linguistic Divsersity Index",colour="Population Size",title=" Predicted Average Linguistic Diversity Index\nof Agents per Resource Amount",
-caption="Clusters were formed using Complete Linkage Hierarchical Clustering on Levenshtein Dissimilarity Matrices.\n\nWhere an LDI of 1 indicates the most diversity with 0 indicaing the least.") +
+caption="Clusters were formed using Complete Linkage Clustering on Levenshtein Dissimilarity Matrices.\n\nWhere an LDI of 1 indicates the most diversity with 0 indicaing the least.") +
 theme(plot.title = element_text(face="bold",size=title_size,hjust = 0.5),plot.caption =element_text(face="italic",size=lab_size,hjust = 0.5)) 
 g
 
 ggsave("pred_lvd_vs_res_by_pop.png",g)
 
-g<- subset(df.predictions,population>200) %>% group_by(resources,population) %>% summarise(lvd=mean(beta)) %>%
+g250<- subset(df.predictions,population>200) %>% group_by(resources,population) %>% summarise(lvd=mean(beta)) %>%
 ggplot(aes(y=lvd,x=resources,color=factor(population))) + geom_point() + geom_line() +
-labs(x="Resource Amount",y=" Predicted Linguistic Divsersity Index",colour="Population Size",title=" Predicted Average Linguistic Diversity Index\nof Agents per Resource Amount",
-caption="Clusters were formed using Complete Linkage Hierarchical Clustering on Levenshtein Dissimilarity Matrices.\n\nWhere an LDI of 1 indicates the most diversity with 0 indicaing the least.") +
+labs(x="Resource Amount",y="",colour="Population Size")+ #,title=" Predicted Average Linguistic Diversity Index\nof Agents per Resource Amount")+
+#caption="Clusters were formed using Complete Linkage Clustering on Levenshtein Dissimilarity Matrices.\n\nWhere an LDI of 1 indicates the most diversity with 0 indicaing the least.") +
 theme(plot.title = element_text(face="bold",size=title_size,hjust = 0.5),plot.caption =element_text(face="italic",size=lab_size,hjust = 0.5)) 
-g
+g250
 
 ggsave("pred_lvd_vs_res_by_pop>200.png",g)
+
+
+g200<- subset(df.predictions,population<=200) %>% group_by(resources,population) %>% summarise(lvd=mean(beta)) %>%
+ggplot(aes(y=lvd,x=resources,color=factor(population))) + geom_point() + geom_line() +
+labs(x="Resource Amount",y=" Predicted Linguistic Divsersity Index",colour="Population Size",title=" Predicted Average Linguistic Diversity\nIndex of Agents per Resource Amount",
+caption="Clusters were formed using Complete Linkage Clustering on Levenshtein Dissimilarity Matrices.\n\nWhere an LDI of 1 indicates the most diversity with 0 indicaing the least.") +
+theme(plot.title = element_text(face="bold",size=title_size,hjust = 0.5),plot.caption =element_text(face="italic",size=lab_size,hjust = 0.5)) 
+g200
+
+ggsave("pred_lvd_vs_res_by_pop<=200.png",g200)
+
+require(gridExtra)
+
+ggsave("grid.png",grid.arrange(g200, g250, ncol=2))
 
 g<-df %>% group_by(population,controller) %>% summarise(mean=mean(lvd),ci=1.96*sqrt(mean*(1-mean)/sum(n))) %>%
 ggplot(aes(y=mean,x=log(population) ,colour=factor(controller))) + 
 geom_point(alpha=0.5) + geom_line() + geom_errorbar(aes(ymin=(mean-ci), ymax=(mean+ci))) +
-labs(x="Population",y="Linguistic Divsersity Index",colour="Controller",fill="Controller",title=" Average Linguistic Diversity Index of Agents within Clusters\nper log(Population Size)",
-caption="Clusters were formed using Complete Linkage Hierarchical Clustering on Levenshtein Dissimilarity Matrices.\n\nWhere an LDI of 1 indicates the most diversity with 0 indicaing the least.") +
+labs(x="log(Population)",y="Linguistic Divsersity Index",colour="Controller",fill="Controller",title=" Average Linguistic Diversity Index of Agents within Clusters\nper log(Population Size)",
+caption="Clusters were formed using Complete Linkage Clustering on Levenshtein Dissimilarity Matrices.\n\nWhere an LDI of 1 indicates the most diversity with 0 indicaing the least.") +
 theme(plot.title = element_text(face="bold",size=title_size,hjust = 0.5),plot.caption =element_text(face="italic",size=lab_size,hjust = 0.5)) 
 g
 
 ggsave("lvd_v_log_pop.png",g)
 
+g<-df %>% group_by(population,controller) %>% summarise(mean=mean(lvd),ci=1.96*sqrt(mean*(1-mean)/sum(n))) %>%
+ggplot(aes(y=mean,x=(population) ,colour=factor(controller))) + 
+geom_point(alpha=0.5) + geom_line() + geom_errorbar(aes(ymin=(mean-ci), ymax=(mean+ci))) +
+labs(x="Population",y="Linguistic Divsersity Index",colour="Controller",fill="Controller",title=" Average Linguistic Diversity Index of Agents within Clusters\nper Population Size",
+caption="Clusters were formed using Complete Linkage Clustering on Levenshtein Dissimilarity Matrices.\n\nWhere an LDI of 1 indicates the most diversity with 0 indicaing the least.") +
+theme(plot.title = element_text(face="bold",size=title_size,hjust = 0.5),plot.caption =element_text(face="italic",size=lab_size,hjust = 0.5)) 
+g
+
+ggsave("lvd_v_log_pop.png",g)
+
+
 g<-df %>% group_by(resources,controller) %>% summarise(mean=mean((lvd) ),ci=1.96*sqrt(mean*(1-mean)/sum(n))) %>%
 ggplot(aes(y=mean,x=resources,colour=factor(controller))) + 
 geom_point(alpha=0.5) + geom_line() + geom_errorbar(aes(ymin=(mean-ci), ymax=(mean+ci)),width=100) +
 labs(x="Resources",y="Linguistic Divsersity Index",colour="Controller",fill="Controller",title=" Average Linguistic Diversity Index of Agents within Clusters\nper Resource Amount",
-caption="Clusters were formed using Complete Linkage Hierarchical Clustering on Levenshtein Dissimilarity Matrices.\n\nWhere an LDI of 1 indicates the most diversity with 0 indicaing the least.") +
+caption="Clusters were formed using Complete Linkage Clustering on Levenshtein Dissimilarity Matrices.\n\nWhere an LDI of 1 indicates the most diversity with 0 indicaing the least.") +
 theme(plot.title = element_text(face="bold",size=title_size,hjust = 0.5),plot.caption =element_text(face="italic",size=lab_size,hjust = 0.5)) 
 g
 
@@ -144,7 +169,7 @@ g<-df %>% group_by(types,controller) %>% summarise(mean=mean(lvd),ci=1.96*sqrt(m
 ggplot(aes(y=mean,x=types,colour=factor(controller))) + 
 geom_point(alpha=0.5) + geom_line() + geom_errorbar(aes(ymin=(mean-ci), ymax=(mean+ci)),width=0.5) +
 labs(x="Resource Types",y="Linguistic Divsersity Index",colour="Controller",fill="Controller",title=" Average Linguistic Diversity Index of Agents within Clusters\nper Number of Resource Types present",
-caption="Clusters were formed using Complete Linkage Hierarchical Clustering on Levenshtein Dissimilarity Matrices.\n\nWhere an LDI of 1 indicates the most diversity with 0 indicaing the least.") +
+caption="Clusters were formed using Complete Linkage Clustering on Levenshtein Dissimilarity Matrices.\n\nWhere an LDI of 1 indicates the most diversity with 0 indicaing the least.") +
 theme(plot.title = element_text(face="bold",size=title_size,hjust = 0.5),plot.caption =element_text(face="italic",size=lab_size,hjust = 0.5)) 
 g
 
@@ -163,7 +188,7 @@ g
 
 g<-subset(df,population>100) %>% group_by(population,resources) %>% summarise(mean=mean(lvd),ci=1.96*sqrt(mean*(1-mean)/sum(n))) %>%
 ggplot(aes(y=mean,x=(resources) ,colour=factor(population))) + 
-geom_point(alpha=0.5) + geom_line() + geom_errorbar(aes(ymin=(mean-ci), ymax=(mean+ci)),width=20) +
+geom_point(alpha=0.5) + geom_line() + geom_errorbar(aes(ymin=(mean-ci), ymax=(mean+ci)),width=2) +
 labs(x="Population",y="Linguistic Divsersity Index",colour="Controller",fill="Controller",title=" Average Linguistic Diversity Index of Agents within Clusters\nper log(Population Size)",
 caption="Clusters were formed using Complete Linkage Hierarchical Clustering on Levenshtein Dissimilarity Matrices.\n\nWhere an LDI of 1 indicates the most diversity with 0 indicaing the least.") +
 theme(plot.title = element_text(face="bold",size=title_size,hjust = 0.5),plot.caption =element_text(face="italic",size=lab_size,hjust = 0.5)) 
@@ -213,7 +238,7 @@ library(plotly)
 
 fig <- plot_ly() %>% add_trace(data=df.predictions,
  y = ~log(population), x = ~resources, z = ~beta, color = ~beta, intensity=~beta, type="mesh3d",colors = colorRamp(c("blue", "lightblue", "chartreuse3", "yellow", "red"))) %>% 
- layout(scene = list(xaxis = list(title = 'ln(Population Size'),
+ layout(scene = list(xaxis = list(title = 'ln(Population Size)'),
                      yaxis = list(title = 'Resource Number'),
                      zaxis = list(title = 'Predicted Linguistic Diversity Index')))
 
@@ -238,6 +263,6 @@ fig <- fig %>% layout(scene = list(xaxis = list(title = 'Weight'),
                      yaxis = list(title = 'Gross horsepower'),
                      zaxis = list(title = '1/4 mile time')))
 
-htmlwidgets::saveWidget(fig, "3dplot.html", selfcontained=FALSE)
+htmlwidgets::saveWidget((fig), "3dplot.html", selfcontained=TRUE)
 
 fig

@@ -139,77 +139,6 @@ create.elbow.plot = function(data,k.start,k.max,cols){
    return(data.frame(clusters=k.start:k.max,var=var))
 }
 
-
-library(jsonlite)
-agents = invisible(stream_in(file(paste('./wordlists/ABC/wordList_25.json',sep="")),verbose=FALSE))
-agents$hashcode = !is.na(agents$hashcode)
-
-
-data=subset(agents,hashcode==TRUE&resources==1000&environment==4&trial==7)
-data.rand=subset(agents,hashcode==FALSE &resources==2000&environment==6)
-
-cols=c("A","B","C")
-require(tidyverse)
-require(stringdist)
-df = data %>% unite(lang, cols,sep="",remove=FALSE)
-daisy.mat <- 1-stringsimmatrix(df$lang,df$lang,useNames="strings",method="lv")
-hc <- hclust(as.dist(daisy.mat),method="complete")
-plot(hc)
-
-head(df)
-mds.data = cmdscale(daisy.mat)
-colnames(mds.data) = c("x","y")
-head(mds.data)
-mds.data
-library(ggrepel)
-kmeans(daisy.mat,5)$centers
-require(factoextra)
-n_clust<-fviz_nbclust(daisy.mat, kmeans, method = "silhouette",k.max = 6)
-n_clust
-summary(n_clust)
-as.numeric(n_clust$clusters[which.max(n_clust$y)])
-
-ggplot(data=as.data.frame(mds.data),aes(x=x,y=y,colour=factor(kmeans(daisy.mat,5)$centers))) + geom_point()
-
-ggplot(data=as.data.frame(mds.data),aes(x=x,y=y,colour=factor(df$cluster))) + geom_point()
-
-par(cex=0.5,font=3)
-plot(hc,hang=-1)
-rect.hclust(hc, k = 10, border = "red")
-
-
-plot(hc)
-cutreeHybrid(hc,distM=daisy.mat,minClusterSize=2)
-df$clusters = cutreeHybrid(hc,distM=daisy.mat,minClusterSize=2)$labels
-df
-df[,c(cols,"clusters")]
-
-df.rand = data.rand %>% unite(lang, cols,sep="",remove=FALSE)
-daisy.mat.rand <- 1-stringsimmatrix(df.rand$lang,df.rand$lang,useNames="strings",method="lv")
-hc.rand <- hclust(as.dist(daisy.mat.rand),method="complete")
-plot(hc.rand)
-plot(hc)
-
-head(daisy.mat)
-
-head(data)
-
-require(vegan)
-head(df)
-plot(hc)
-
-fviz_dist(as.dist(daisy.mat), lab_size = 8)
-
-hcRange <- as.clustrange(hc, diss=as.dist(daisy.mat), ncluster=20) 
-median((summary(hcRange)[1])[,1])
-hcRange
-plot(hc)
-
-plot(hcRange, stat = c("ASWw", "HG", "PBC"), lwd = 2)
-
-
-require(vegan)
-
 create.plots.all = function(cols=c(),controller=TRUE){
    require(jsonlite)
 
@@ -262,6 +191,19 @@ create.plots.all = function(cols=c(),controller=TRUE){
 
 }
 
+for (vec in list(c(0:4),c(5:9),c(10:15),c(16:20))){
+   print(vec)
+}
+
+
+0 1 2 3 4
+5 6 7 8 9
+10 11 12 13 14
+15 16 17 18 19
+
+p = data.frame(A="a",B="b")
+
+p %>% tidyr::unite(lang,c(A,B))
 
 create.similarity.df = function(cols,ANN=TRUE){
 
@@ -317,47 +259,79 @@ create.similarity.df = function(cols,ANN=TRUE){
 
 }
 
+require(devtools)
+withr::with_libpaths(new = "./package", install("package/tidyverse", dependencies = TRUE))
+
+library(miniCRAN)
+
+install.packages(pkgs, repos = paste0("./packages/src/contrib"),type = "source")
+
+tidyr::unite()
+
+pkgs <- pkgDep("tidyverse")
+pkgList <- pkgDep(pkgs, type = "source", suggests = FALSE)
+makeRepo(pkgList, path="package/.", type = c("source"))
+
+install.packages("miniCRAN")
 
 cluster.data.frame = function(cols,controller=TRUE){
 
+   require(devtools)
+
+   load_all('./package/stringdist/pkg')
+   load_all('./package/dbplyr')
+   load_all('./package/modelr')
+   load_all('./package/reprex')
+   load_all('./package/rvest')
+   load_all('./package/tidyverse')
+
+   require(parallel)
+   require(doParallel)
+   require(foreach)
    require(jsonlite)
    require(dplyr)
-   require(tidyverse)
-   require(stringdist)
+   # require(tidyverse)
+   # require(stringdist)
    require(dynamicTreeCut)
 
    sim_df = data.frame()
-
-   # pb = txtProgressBar(min = 0, max = 21*10*11*4, initial = 0,style=3) 
       
-   for (agent_no in c(10:1,0.5,20)*50){
+   for (agent_no in c(1)*50){
 
-      agents = stream_in(file(paste('./wordlists/',paste(cols,collapse=""),'/wordList_',agent_no,'.json',sep="")),verbose=FALSE)
+      # agents = stream_in(file(paste('./wordlists/',paste(cols,collapse=""),'/wordList_',agent_no,'.json',sep="")))
+      agents = stream_in(file(paste('wordList_',agent_no,'.json',sep="")))
+
       agents$hashcode = !is.na(agents$hashcode)
       agents$population=agent_no
 
       for (res in c(1:5)*500){
 
-      vec <- c()
-      for (env in 0:9){
+         for (dim in c(50,75,100,150)^2){
 
+            for (splt in c(0.1,0.2,0.3,0.4,0.5)){
 
-         r = foreach (trl=0:20,.combine=rbind) %dopar%{
-            
-            data=subset(agents,hashcode==controller &resources==res&environment==env & trial==trl)
+            vec <- c()
+            for (env in 0:9){
 
-            df = data %>% unite(lang, cols,sep="",remove=FALSE)
-            daisy.mat <- 1-stringsimmatrix(df$lang,df$lang,useNames="strings",method="lv")
-            hc <- hclust(as.dist(daisy.mat),method="complete")
-            data$cluster = cutreeHybrid(hc,distM=daisy.mat,minClusterSize=2,verbose=0)$labels
-            as.data.frame(data)
+               registerDoParallel(4)
+               r = foreach (trl=0:20,.combine=rbind) %dopar%{
+                  
+                  data=subset(agents,hashcode==controller &resources==res&environment==env & trial==trl&split==splt&world==dim)
+
+                  df = data %>% unite(lang, cols,sep="",remove=FALSE)
+                  daisy.mat <- 1-stringsimmatrix(df$lang,df$lang,useNames="strings",method="lv")
+                  hc <- hclust(as.dist(daisy.mat),method="complete")
+                  data$cluster = cutreeHybrid(hc,distM=daisy.mat,minClusterSize=2,verbose=0)$labels
+                  as.data.frame(data)
+               }
+               sim_df = dplyr::bind_rows(sim_df,r)
+
+            }
+            gc(verbose=FALSE)
+
+            }
          }
-         sim_df = dplyr::bind_rows(sim_df,r)
-
       }
-      gc(verbose=FALSE)
-
-   }
 
    sim_df$type = paste(cols,collapse="")
       
@@ -435,3 +409,98 @@ cluster.sim.df = function(data,cols){
    return(df.stats)
 
 }
+
+
+p = data.frame(x=1:10,y=11)
+
+as.dist(p$y)
+
+args <- commandArgs(trailingOnly = TRUE)
+agent_no = as.numeric(args[1])
+
+cluster.data.frame = function(cols,controller=TRUE,agent_no=25){
+   require(devtools)
+   require(stringdist)
+   require(tidyverse)
+   # setwd("./package/src/contrib")
+   # pkgs <- list.dirs('.', recursive=FALSE)
+
+   # sapply(pkgs, require, character.only = TRUE)
+
+   # setwd("../../..")
+
+   # load_all('./package/stringdist/pkg')
+   
+   require(parallel)
+   require(doParallel)
+   require(foreach)
+   require(jsonlite)
+   require(dplyr)
+   
+   require(dynamicTreeCut)
+
+   sim_df = data.frame()
+      
+   
+
+      agents = stream_in(file(paste('wordlists/final/wordList_',agent_no,'.json',sep="")),verbose=TRUE)
+      agents$hashcode = !is.na(agents$hashcode)
+      agents$population=agent_no
+
+      for (res in c(1:5)*500){
+
+         for (dim in c(50,75,100,150)^2){
+
+            for (splt in c(0.1,0.2,0.3,0.4,0.5)){
+
+            vec <- c()
+            for (env in 0:9){
+
+               #registerDoParallel(10)
+		#for (comb in list(c(0:4),c(5:9),c(10:15),c(16:20))){
+               	#r = foreach (trl=comb,.combine=rbind) %dopar%{
+                 for (trl in c(0:20)){  
+                  data=subset(agents,hashcode==controller &resources==res&environment==env & trial==trl&split==splt&world==dim)
+                  print(head(data))
+                  if (nrow(data))
+                  data$cluster <- NA
+                  df = data %>% tidyr::unite(lang, cols,sep="",remove=FALSE)
+                  if (length(unique(df$lang))>1){
+                     daisy.mat <- 1-stringsimmatrix(df$lang,df$lang,useNames="strings",method="lv")
+                     hc <- hclust(as.dist(daisy.mat),method="complete")
+                     data$cluster = cutreeHybrid(hc,distM=daisy.mat,minClusterSize=2,verbose=0)$labels
+                     rm(hc,daisy.mat,df)
+                  } else{
+                   data$cluster=0                     
+                  }
+
+  		  sim_df = dplyr::bind_rows(sim_df,data)
+                  rm(data)
+                  gc(verbose=FALSE)
+                  #as.data.frame(data)
+               }
+                #sim_df = dplyr::bind_rows(sim_df,r)
+             }
+            	gc(verbose=FALSE)
+	  }
+            
+           }
+}       
+   sim_df$type = paste(cols,collapse="")
+   return(sim_df)
+
+}
+
+
+
+head(df)
+
+ggplot(df, aes(x=resources,y=fitness)) + geom_point()
+
+head(subset(df,resources==1500))
+
+unique(df$split)
+
+agent_no = as.numeric(args[1])
+df = cluster.data.frame(c("A","B"))
+save(df,file=paste(paste("AB_controller",agent_no,sep="_"),".RData",sep=""))

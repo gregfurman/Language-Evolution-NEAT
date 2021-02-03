@@ -306,7 +306,7 @@ public class Environment implements Runnable{
     }
 
 
-    private final int Movement_Limit = 100;
+    private final int Movement_Limit = 200;
     Cell[][] grid;
 
     NEATNetwork network;
@@ -453,44 +453,67 @@ public class Environment implements Runnable{
 
     }
 
-    void loadResources(int resources){
-
-        char[] resource_types = {'A','B','C','D','E'};
-        int[] quantiles = k_quantile(resources,config.getLanguageNumber());
-
+    void shuffle(int[][] a) {
         Random random = new Random();
 
-        int x = random.nextInt(MAX_X);
-        int y = random.nextInt(MAX_Y);
+        for (int i = a.length - 1; i > 0; i--) {
+            for (int j = a[i].length - 1; j > 0; j--) {
+                int m = random.nextInt(i + 1);
+                int n = random.nextInt(j + 1);
 
-        int counter = 0;
-        int index = 0;
-
-        char type = ' ';
-        do{
-
-
-            if (counter <= quantiles[index]){
-
-                type=resource_types[index];
-
-            } else {
-                index++;
+                int temp = a[i][j];
+                a[i][j] = a[m][n];
+                a[m][n] = temp;
             }
+        }
+    }
+
+    void loadResources(int resources){
 
 
-            if (grid[x][y].getClass() == Cell.class){
-                counter++;
-                grid[x][y] = new Resource(type,true);
-            }
+        if (resources>0) {
+            int cells = count(Cell.class);
 
-            x = random.nextInt(MAX_X);
-            y = random.nextInt(MAX_Y);
+            resources = cells > resources ? resources : (cells * 80) / 100;
 
-        } while(counter < resources && counter + config.getAgent_no() < config.getDim_y()*config.getDim_x());
+            char[] resource_types = {'A', 'B', 'C', 'D', 'E'};
+            int[] quantiles = k_quantile(resources, config.getLanguageNumber());
+
+            Random random = new Random();
+
+            int x = random.nextInt(MAX_X);
+            int y = random.nextInt(MAX_Y);
+
+            int counter = 0;
+            int index = 0;
+
+            char type = ' ';
+
+            do {
 
 
+                if (counter <= quantiles[index]) {
 
+                    type = resource_types[index];
+
+                } else {
+                    index++;
+                }
+
+
+                if (grid[x][y].getClass() == Cell.class) {
+                    counter++;
+                    grid[x][y] = new Resource(type, true);
+                }
+
+                x = random.nextInt(MAX_X);
+                y = random.nextInt(MAX_Y);
+
+
+            } while (counter < resources);
+
+
+        }
     }
 
     void loadResources(){
@@ -500,10 +523,12 @@ public class Environment implements Runnable{
 
 
 
+
     void loadAgents(int totalAgents, NEATNetwork network){
 
         char[] types = {'A','B','C','D','E'};
         Random random = new Random();
+        long seed = random.nextLong();
 
         int x = random.nextInt(MAX_X);
         int y = random.nextInt(MAX_Y);
@@ -512,10 +537,15 @@ public class Environment implements Runnable{
 
             if (grid[x][y].getClass() == Cell.class){
                 Agent agent = new Agent(counter, network, initial_fitness);
-                agent.configureWordMap(Arrays.copyOfRange(types,0,config.getLanguageNumber()));
+                agent.configureWordMap(Arrays.copyOfRange(types,0,config.getLanguageNumber()),seed);
                 grid[x][y] = agent;
                 agents.add(agent);
                 counter++;
+
+                if (counter == (int)(config.getSplit()*config.getAgent_no())){
+                    seed = random.nextLong();
+                }
+
             }
 
             x = random.nextInt(MAX_X);
@@ -584,6 +614,10 @@ public class Environment implements Runnable{
                 element.getAsJsonObject().addProperty("Status", status);
                 element.getAsJsonObject().addProperty("trial", trial);
                 element.getAsJsonObject().addProperty("resources", config.getResource_no());
+                element.getAsJsonObject().addProperty("split", config.getSplit());
+                element.getAsJsonObject().addProperty("dimension", config.getDim_x()*config.getDim_y());
+
+
                 wordlist[agent.getId()] = gson.toJson(element);
 
             }
@@ -618,6 +652,9 @@ public class Environment implements Runnable{
                 element.getAsJsonObject().addProperty("trial", trial);
                 element.getAsJsonObject().addProperty("resources", config.getResource_no());
                 element.getAsJsonObject().addProperty("environment", env);
+                element.getAsJsonObject().addProperty("split", config.getSplit());
+                element.getAsJsonObject().addProperty("world", config.getDim_x()*config.getDim_y());
+
 
                 wordlist[agent.getId()] = gson.toJson(element);
 
@@ -647,9 +684,13 @@ public class Environment implements Runnable{
 
         int iteration = 0;
         boolean multithreaded = false;
-        boolean overflow = config.getResource_no() + config.getAgent_no() > config.getDim_x()*config.getDim_y();
 
         int prev = count(Resource.class);
+
+        boolean overflow = prev < config.getResource_no();  //config.getResource_no() + config.getAgent_no() > config.getDim_x()*config.getDim_y();
+
+
+
         while(count(Resource.class) > 0 && iteration < MAX){
             ++iteration;
             move(multithreaded);
@@ -657,12 +698,37 @@ public class Environment implements Runnable{
 
         }
         if (overflow){
-            loadResources(config.getResource_no()- prev);
-            while(count(Resource.class) > 0 && iteration < MAX){
-                ++iteration;
-                move(multithreaded);
-                check(multithreaded);
+
+            int res_count = count(Resource.class);
+
+            int remainder = config.getResource_no()-res_count;
+            int difference = prev - res_count;
+
+
+           for (int i =0;i<10;i++)
+            {
+//                System.out.println(difference +" " +count(Resource.class) + " " + remainder + " " + prev);
+
+                remainder -= difference;
+                loadResources(difference);
+
+
+                while (count(Resource.class) > 0 && iteration < MAX) {
+                    ++iteration;
+                    move(multithreaded);
+                    check(multithreaded);
+                }
+
+
+                difference = prev - count(Resource.class);
+
+                if (remainder == 0)
+                    break;
+
+
             }
+
+
 
         }
 
