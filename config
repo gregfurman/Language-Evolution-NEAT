@@ -1,0 +1,1 @@
+{id=1,population_size=500,dim_x=50, dim_y=50,initial_fitness=10, agent_no=500, resource_no=2000, trials=50, generations=100,loadPopulation=False,train=True,language_number=3,split=0.5}

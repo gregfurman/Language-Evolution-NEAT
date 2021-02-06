@@ -66,11 +66,6 @@ public class StatsCalculator {
             return sumDiffsSquared / (scores.size() - 1);
         }
 
-//       return  scores.stream()
-//                .map(i -> i - average)
-//                .map(i -> i*i)
-//                .mapToDouble(i -> i).sum()/(scores.size()-1);
-
     }
 
 

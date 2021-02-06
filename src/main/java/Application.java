@@ -1,56 +1,21 @@
 import org.encog.neural.neat.NEATPopulation;
 
-import java.util.Arrays;
-
 public class Application {
 
 
     public static void main(String[] args){
 
 
-        Config config = new Config().load("config");
-
-
+        Config config = new Config(new Config().load("config"));
 
         if (config.isTrain()) {
 
-        double[] resources =Arrays.stream(Arrays.copyOfRange(args, 1, args.length))
-                .mapToDouble(Double::parseDouble)
-                .toArray();
-
-        config.setAgent_no(Integer.parseInt(args[0]));
-        config.setId(Integer.parseInt(args[0]));
-
-            Config[] configs = new Config[resources.length];
-            Thread[] threads = new Thread[resources.length];
-
             config.loadStatsRecorders();
+            Environment environment = new Environment(config);
 
-            for (int index = 0; index < resources.length; index++) {
+            Neuroevolution nev =  new Neuroevolution(environment, config);
+            nev.begin();
 
-                configs[index] = new Config(config);
-                configs[index].setResource_no(resources[index]);
-
-
-                Environment environment = new Environment(configs[index]);
-
-                threads[index] = new Thread(new Neuroevolution(environment, configs[index]));
-
-                threads[index].start();
-
-            }
-
-
-            for (Thread thread : threads) {
-
-
-                try {
-                    thread.join();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-
-            }
 
         } else {
 

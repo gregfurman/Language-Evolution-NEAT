@@ -59,8 +59,59 @@ public class Config {
         this.split = config.getSplit();
 
 
+
     }
 
+
+    protected boolean check(){
+
+        String log = "Error's in config file:\n";
+        StringBuilder sb = new StringBuilder(log);
+
+        if (train) {
+
+            if (population_size < 2){
+                sb.append("\n- Must be a population size of at least 2");
+            }
+
+            if (generations < 1){
+                sb.append("\n- There must be at least 1 generation for evolution to take place.");
+            }
+
+        }
+
+        if (getTrials() < 1)
+            sb.append("\n- There must be at least 2 trials.");
+
+        if (language_number < 1)
+            sb.append(String.format("\n- %d resource types not allowed. Must be greater than 0."));
+
+        if (agent_no<2)
+            sb.append("\n- There must be at least 2 agents within the simulation.");
+
+        if (resource_no<1){
+            sb.append("\n- There must be at least 2 resources within the simulation.");
+        }
+
+        if (dim_y*dim_x <= agent_no)
+            sb.append("\n- Talking agent population cannot exceed the size of the environment.");
+
+        if (dim_x*dim_y < 25)
+            sb.append("\n- Area of environment must be greater than or equal to 5 x 5 cells.");
+
+
+        if (sb.toString().equals(log))
+            return false;
+
+        sb.append("\n\n**********************");
+
+
+        System.out.println(sb.toString());
+        return true;
+
+
+
+    }
 
     public Config(int agent_no){
 
@@ -175,10 +226,11 @@ public class Config {
 
     public void loadStatsRecorders(){
 
+        if (check())
+            System.exit(1);
+
         if (isTrain())
             fitnessStats = new StatsRecorder("fitness_"+getAgent_no()+".csv","Generation,average,MSB,MSW,best,resources,agents",256);
-        else
-            fitnessStats = new StatsRecorder("fitness_"+getAgent_no()+".csv","iteration,average,variance,resources,agents,environment,trial",256);
 
         wordList =new StatsRecorder("wordList_"+getAgent_no()+".json");
 

@@ -49,13 +49,12 @@ public class ScoreCalculate implements CalculateScore {
 
             trialScores.add(drivers[trial].getFitness());
 
-            if (env.generation.get() % (config.getGenerations()/10) == 0)
-            recordWords(drivers[trial].wordlist(false,trial));
             drivers[trial] = null;
 
         }
 
         score = trialScores.average(false);
+
 
 
         config.getTrialCalculator().add(trialScores.SSG(score) / (config.getPopulation_size() * (config.getTrials() - 1)));
