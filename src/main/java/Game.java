@@ -68,10 +68,15 @@ public class Game implements Runnable{
 
         agents.remove(winner);
 
+
         for (Agent agent : agents){
             agent.consume((winner.getBid()/agents.size())+resource.reward*((1/(double)(agents.size()+1))/(double) agents.size()),false);
             agent.setTerm(resource.type,winner.getTerm(resource.type));
+            agent.clearNeighbours();
         }
+
+
+
 
     }
 

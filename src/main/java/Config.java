@@ -57,6 +57,7 @@ public class Config {
         this.loadPopulation = config.isLoadPopulation();
         this.language_number = config.getLanguageNumber();
         this.split = config.getSplit();
+        this.trial_id = config.trial_id;
 
 
 
@@ -211,7 +212,7 @@ public class Config {
 
     void setDims(int x,int y){ this.dim_x=x; this.dim_y=y;}
 
-    void setSplit(double split){this.split = split > 1 || split <= 0 ? 1: split;}
+    void setSplit(double split){this.split = split > 1 || split < 0 ? 1: split;}
 
     public void setResources(int resources){
         this.resource_no = resources;
@@ -240,7 +241,8 @@ public class Config {
 
     public void closeStatsRecorders(){
         wordList.close();
-        fitnessStats.close();
+        if (isTrain())
+            fitnessStats.close();
     }
 
 

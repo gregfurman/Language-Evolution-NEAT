@@ -121,10 +121,12 @@ public class Neuroevolution implements Runnable {
 
         if (config.isLoadPopulation()) {
 
+            final int DEFAULT_RESOURCES = 2000;
+
             PersistNEATPopulation persistNEATPopulation = new PersistNEATPopulation();
 
             int agents = config.getAgent_no();
-            int resources = config.getResource_no();
+            int resources =   config.getResource_no() <= DEFAULT_RESOURCES ? config.getResource_no(): DEFAULT_RESOURCES;
 
 
             String filename = String.format("./savedNetworks/population_%d_%d.eg", agents, resources);

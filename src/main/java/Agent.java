@@ -320,6 +320,10 @@ public class Agent extends Cell implements Runnable{
         neighbours.add(agent);
     }
 
+    void clearNeighbours(){
+        neighbours.clear();
+    }
+
     public double getFitness() {
         return fitness;
     }

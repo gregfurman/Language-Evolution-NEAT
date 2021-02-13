@@ -6,6 +6,7 @@ import org.encog.neural.neat.NEATPopulation;
 
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.stream.Stream;
 
 
 public class Environment implements Runnable{
@@ -196,23 +197,86 @@ public class Environment implements Runnable{
             }
         }
 
+
+        void check(Agent agent,Resource resource,int c, int r){
+
+            int rowStart  = Math.max( r - 1, lo   );
+            int rowFinish = Math.min( r + 1, hi );
+            int colStart  = Math.max( c - 1, lo   );
+            int colFinish = Math.min( c + 1, hi );
+
+
+            agent.neighbours = new ArrayList<>();
+
+            for ( int row = rowStart; row <= rowFinish; row++ ) {
+                for ( int col = colStart; col <= colFinish; col++ ) {
+
+                    if (grid[col][row].hasAgent() &&grid[col][row].getAgent().id != agent.id) {
+
+                        agent.addNeighbour(grid[col][row].getAgent());
+
+                    }
+
+                }
+            }
+
+
+            if (agent.neighbours.size() > 0){
+                Game game = new Game(agent,resource);
+                game.begin(false);
+
+                grid[c][r].setResource(null);
+            }
+
+
+
+
+        }
+
         void serialMove(){
-            for (int i = lo; i < hi; ++i)
-                for (int j = lo; j < hi; ++j){
-                    if (grid[i][j].getClass() == Agent.class ) {
 
-                        if(true){
-                            int[] coord = coord(i, j);
-                            if (grid[coord[0]][coord[1]].getClass() == Cell.class) {
-                                ((Agent) grid[i][j]).decrementFitness(0.05);
-                                grid[coord[0]][coord[1]] = grid[i][j];
-                                grid[i][j] = new Cell();
+            for (int i = lo; i < hi+1; ++i)
+                for (int j = lo; j < hi+1; ++j){
 
-                            }
+                    if (grid[i][j].hasAgent()) {
+
+                        Agent agent = new Agent(grid[i][j].getAgent());
+
+
+
+                        if (grid[i][j].hasResource()){
+
+                            check(agent,grid[i][j].getResource(),i,j);
+
 
                         }
+
+
+                        int[] coord = coord(i, j);
+
+                        if (!grid[coord[0]][coord[1]].hasAgent()) {
+
+                            agent.decrementFitness(0.05);
+                            grid[coord[0]][coord[1]].setAgent(agent);
+                            grid[i][j].setAgent(null);
+
+
+                        }
+
+                        if (grid[coord[0]][coord[1]].hasResource() && grid[coord[0]][coord[1]].hasAgent() ){
+
+                            check(agent,grid[coord[0]][coord[1]].getResource(),coord[0],coord[1]);
+
+
+                        }
+
+
+
+
                     }
                 }
+
+
         }
 
 
@@ -306,7 +370,7 @@ public class Environment implements Runnable{
     }
 
 
-    private final int Movement_Limit = 200;
+    private final int Movement_Limit = 1000;
     Cell[][] grid;
 
     NEATNetwork network;
@@ -315,7 +379,9 @@ public class Environment implements Runnable{
     Generation generation;
 
     int MAX_X, MAX_Y, AGENT_NO,RESOURCE_NO;
-    private int initial_fitness;
+    private int initial_fitness, trialID,envID;
+
+
 
     Config config;
 
@@ -372,6 +438,9 @@ public class Environment implements Runnable{
         generation = environment.generation;
         agents = new ArrayList<>();
 
+        trialID = environment.trialID;
+        envID = environment.envID;
+
         this.initial_fitness = environment.initial_fitness;
         MAX_X = environment.MAX_X;
         MAX_Y = environment.MAX_Y;
@@ -380,14 +449,20 @@ public class Environment implements Runnable{
 
         for (int row = 0; row < environment.grid.length; row++)
             for (int col=0; col < environment.grid[0].length; col++) {
-                if (environment.grid[row][col].getClass() == Agent.class) {
-                    Agent agent = new Agent((Agent)environment.grid[row][col]);
-                    grid[row][col] = agent;
-                    agents.add(agent);
-                } else if (environment.grid[row][col].getClass() == Resource.class){
-                    grid[row][col] = new Resource((Resource)environment.grid[row][col]);
-                } else
-                    grid[row][col] = new Cell();
+
+                grid[row][col] = new Cell();
+
+                if (environment.grid[row][col].hasAgent()) {
+                    Agent agent = new Agent(environment.grid[row][col].getAgent());
+                    grid[row][col].setAgent(agent);
+                }
+
+                if (environment.grid[row][col].hasResource()) {
+                    Resource resource = new Resource(environment.grid[row][col].getResource());
+                    grid[row][col].setResource(resource);
+
+                }
+
         }
 
 
@@ -415,7 +490,7 @@ public class Environment implements Runnable{
     public Environment(Config config, NEATPopulation population){
 
         this(config);
-        this.network = (NEATNetwork)population.getCODEC().decode(population.getBestGenome());;
+        this.network = (NEATNetwork)population.getCODEC().decode(population.getBestGenome());
 
     }
 
@@ -433,9 +508,9 @@ public class Environment implements Runnable{
 
 
     public void loadGrid(){
+
         loadAgents();
         loadResources();
-
 
     }
 
@@ -501,9 +576,9 @@ public class Environment implements Runnable{
                 }
 
 
-                if (grid[x][y].getClass() == Cell.class) {
+                if (!grid[x][y].hasResource()) {
                     counter++;
-                    grid[x][y] = new Resource(type, true);
+                    grid[x][y].setResource(new Resource(type, true));
                 }
 
                 x = random.nextInt(MAX_X);
@@ -535,14 +610,13 @@ public class Environment implements Runnable{
         int counter = 0;
         do{
 
-            if (grid[x][y].getClass() == Cell.class){
+            if (!grid[x][y].hasAgent()){
                 Agent agent = new Agent(counter, network, initial_fitness);
                 agent.configureWordMap(Arrays.copyOfRange(types,0,config.getLanguageNumber()),seed);
-                grid[x][y] = agent;
+                grid[x][y].setAgent(agent);
                 agents.add(agent);
                 counter++;
-
-                if (counter == (int)(config.getSplit()*config.getAgent_no())){
+                if (config.getSplit() == 0 || counter == (int)(config.getSplit()*config.getAgent_no())){
                     seed = random.nextLong();
                 }
 
@@ -568,6 +642,18 @@ public class Environment implements Runnable{
     public List<Agent> getAgents(){
 
         return agents;
+
+    }
+
+
+    void displayWordList(){
+
+        for (int i=0;i<config.getAgent_no();i++){
+
+
+            System.out.println(String.format("%d: %s",(i+1),getWordList()[i]));
+        }
+
 
     }
 
@@ -689,14 +775,13 @@ public class Environment implements Runnable{
 
         boolean overflow = prev < config.getResource_no();  //config.getResource_no() + config.getAgent_no() > config.getDim_x()*config.getDim_y();
 
-
-
         while(count(Resource.class) > 0 && iteration < MAX){
             ++iteration;
             move(multithreaded);
-            check(multithreaded);
 
         }
+
+
         if (overflow){
 
             int res_count = count(Resource.class);
@@ -716,7 +801,7 @@ public class Environment implements Runnable{
                 while (count(Resource.class) > 0 && iteration < MAX) {
                     ++iteration;
                     move(multithreaded);
-                    check(multithreaded);
+//                    check(multithreaded);
                 }
 
 
@@ -732,12 +817,44 @@ public class Environment implements Runnable{
 
         }
 
+        collectAgents();
+
+
+
 
     }
+
+
+    void collectAgents(){
+
+
+        for (int row = 0; row < grid.length; row++)
+            for (int col=0; col < grid[0].length; col++) {
+
+                if (grid[row][col].hasAgent()) {
+                    agents.add(grid[row][col].getAgent());
+                }
+
+
+            }
+
+
+
+    }
+
 
     public void begin(){
 
         begin(Movement_Limit);
+
+
+        System.out.println(String.format("Trial = %d, Environment = %d, Population = %d, Resources = %d, Size = %d",trialID,envID,config.agent_no,config.resource_no,config.getDim_x()*config.getDim_y()));
+
+        StatsRecorder wordlist = config.getWordList();
+
+        for (String word : getWordList(trialID, envID)) {
+            wordlist.write(word);
+        }
 
     }
 
@@ -765,6 +882,7 @@ public class Environment implements Runnable{
             moveAgents.serialMove();
 
         }
+
     }
 
     public void check(boolean multithreaded){
@@ -788,19 +906,13 @@ public class Environment implements Runnable{
     }
 
     public int count(Class type) {
-        int counter = 0;
-        for(int x = 0; x < MAX_X; x++)
-        {
-            for(int y = 0; y < MAX_Y; y++)
-            {
-                if(type == grid[x][y].getClass())
-                {
-                    counter++;
-                }
-            }
-        }
 
-        return counter;
+        if (type == Agent.class)
+            return (int) Arrays.stream(grid).flatMap(Arrays::stream).filter(Cell::hasAgent).count();
+        else if (type == Resource.class)
+            return (int) Arrays.stream(grid).flatMap(Arrays::stream).filter(Cell::hasResource).count();
+
+        return (int) Arrays.stream(grid).flatMap(Arrays::stream).count();
     }
 
     public int countAgents() {
@@ -883,10 +995,20 @@ public class Environment implements Runnable{
 
     }
 
+    void setID(int envID, int trialID){
+
+        this.envID = envID;
+        this.trialID = trialID;
+
+    }
+
+
     @Override
     public void run() {
 
-        begin(Movement_Limit);
+        begin();
+
+
 
     }
 }
