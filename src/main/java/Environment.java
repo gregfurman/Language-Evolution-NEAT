@@ -371,6 +371,8 @@ public class Environment implements Runnable{
 
 
     private final int Movement_Limit = 1000;
+    private final char[] types = {'A','B','C','D','E'};
+
     Cell[][] grid;
 
     NEATNetwork network;
@@ -378,9 +380,10 @@ public class Environment implements Runnable{
     List<Agent>agents;
     Generation generation;
 
+    HashMap<String,Integer> words;
+
     int MAX_X, MAX_Y, AGENT_NO,RESOURCE_NO;
     private int initial_fitness, trialID,envID;
-
 
 
     Config config;
@@ -601,7 +604,6 @@ public class Environment implements Runnable{
 
     void loadAgents(int totalAgents, NEATNetwork network){
 
-        char[] types = {'A','B','C','D','E'};
         Random random = new Random();
         long seed = random.nextLong();
 
@@ -627,6 +629,7 @@ public class Environment implements Runnable{
 
         } while(counter < totalAgents);
 
+
     }
 
     void loadAgents(){
@@ -636,7 +639,54 @@ public class Environment implements Runnable{
     }
 
 
+    double termProbability(String term){
 
+        return (double)words.get(term)/(double) config.getAgent_no();
+    }
+
+    void addTerms(String term,int freq){
+
+        if (words.containsKey(term)){
+            words.put(term,words.get(term)+freq);
+        } else{
+            words.put(term,1);
+        }
+
+    }
+
+
+    void removeTerm(String term){
+
+        if (words.containsKey(term)){
+
+            int freq = words.get(term);
+            freq--;
+
+            if (freq <= 0)
+                words.remove(term);
+        }
+
+    }
+
+    void mapTermFrequency(){
+
+        words = new HashMap<>();
+
+        for (Agent agent : agents){
+
+            for (int i =0;i<config.getLanguageNumber();i++){
+                String term = agent.getTerm(types[i]);
+
+                if (words.containsKey(term)){
+                    words.put(term,words.get(term)+1);
+                } else{
+                    words.put(term,1);
+                }
+            }
+
+
+        }
+    }
 
 
     public List<Agent> getAgents(){
@@ -774,6 +824,9 @@ public class Environment implements Runnable{
         int prev = count(Resource.class);
 
         boolean overflow = prev < config.getResource_no();  //config.getResource_no() + config.getAgent_no() > config.getDim_x()*config.getDim_y();
+
+
+        mapTermFrequency();
 
         while(count(Resource.class) > 0 && iteration < MAX){
             ++iteration;

@@ -196,6 +196,10 @@ public class Agent extends Cell implements Runnable{
 
     }
 
+
+
+
+
     public void NamingGame(){
 
 
@@ -210,20 +214,20 @@ public class Agent extends Cell implements Runnable{
 
             inputs[7] = resource.reward;
 
+            inputs[8] = fitness;
 
-            try {
-
-                if (fitness <= 0) {
-                    fitness = 0;
-                }
-
-                String fitness = String.valueOf(this.fitness).replace(".", "");
-                inputs[8] = Double.valueOf("0." + fitness);
-
-
-            } catch (NumberFormatException e) {
-                System.out.println("Cannot parse fitness: " + fitness + " " + this.fitness);
-            }
+//            try {
+//
+//                if (fitness <= 0) {
+//                    fitness = 0;
+//                }
+//
+//                inputs[8] = fitness;
+//
+//
+//            } catch (NumberFormatException e) {
+//                System.out.println("Cannot parse fitness: " + fitness + " " + this.fitness);
+//            }
 
 
             MLData modelInput = new BasicMLData(inputs);
@@ -344,6 +348,8 @@ public class Agent extends Cell implements Runnable{
     public String toString(){
         return "["+getId() + "]";
     }
+
+
 
     public JsonElement getWordMap() {
 
